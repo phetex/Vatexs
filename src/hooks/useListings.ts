@@ -6,7 +6,7 @@ const LISTING_SELECT = `
   *,
   listing_images ( id, listing_id, url, position ),
   categories ( id, name, slug, icon ),
-  profiles ( id, full_name, avatar_url, location )
+  profiles!listings_seller_id_fkey ( id, full_name, avatar_url, location )
 `;
 
 interface UseListingsOptions {

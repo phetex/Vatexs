@@ -1,4 +1,6 @@
-const symbols: Record<string, string> = { GBP: '£', USD: '$', EUR: '€' };
+import { CURRENCIES } from './currency';
+
+const symbols: Record<string, string> = Object.fromEntries(CURRENCIES.map((c) => [c.code, c.symbol]));
 
 export function formatPrice(price: number, currency: string) {
   const symbol = symbols[currency] ?? currency + ' ';

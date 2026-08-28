@@ -34,6 +34,15 @@
         {
           "photosPermission": "Vatexs uses your photos so you can add pictures to your listings."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#5B4EFF"
+        }
       ]
     ],
     "experiments": {

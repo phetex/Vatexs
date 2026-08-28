@@ -11,6 +11,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { supabase } from '../../src/lib/supabase';
 import { uploadListingImage } from '../../src/lib/uploadImage';
+import { CURRENCIES, DEFAULT_CURRENCY } from '../../src/lib/currency';
 import { colors, radius, spacing } from '../../src/theme/colors';
 import type { Condition } from '../../src/types/database';
 
@@ -31,6 +32,7 @@ export default function Sell() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [location, setLocation] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [condition, setCondition] = useState<Condition>('used');
@@ -60,6 +62,7 @@ export default function Sell() {
     setTitle('');
     setDescription('');
     setPrice('');
+    setCurrency(DEFAULT_CURRENCY);
     setLocation('');
     setCategoryId(null);
     setCondition('used');
@@ -90,6 +93,7 @@ export default function Sell() {
           title: title.trim(),
           description: description.trim(),
           price: priceValue,
+          currency,
           location: location.trim() || null,
           condition,
         })
@@ -149,7 +153,20 @@ export default function Sell() {
             numberOfLines={4}
             style={styles.textArea}
           />
-          <TextField label="Price (GBP)" value={price} onChangeText={setPrice} placeholder="0.00" keyboardType="decimal-pad" />
+          <Text style={styles.sectionLabel}>Currency</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chipsScrollContent}>
+            {CURRENCIES.map((c) => (
+              <CategoryChip key={c.code} label={`${c.symbol} ${c.code}`} active={currency === c.code} onPress={() => setCurrency(c.code)} />
+            ))}
+          </ScrollView>
+
+          <TextField
+            label={`Price (${currency})`}
+            value={price}
+            onChangeText={setPrice}
+            placeholder="0.00"
+            keyboardType="decimal-pad"
+          />
           <TextField label="Location (optional)" value={location} onChangeText={setLocation} placeholder="e.g. Manchester" />
 
           <Text style={styles.sectionLabel}>Category</Text>
@@ -179,6 +196,8 @@ const styles = StyleSheet.create({
   header: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: spacing.lg },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.xs },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
+  chipsScroll: { marginBottom: spacing.md },
+  chipsScrollContent: { paddingRight: spacing.lg },
   imageRow: { marginBottom: spacing.md },
   imageThumbWrap: { marginRight: spacing.sm },
   imageThumb: { width: 84, height: 84, borderRadius: radius.md, backgroundColor: colors.surface },
