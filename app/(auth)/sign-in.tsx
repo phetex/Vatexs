@@ -51,6 +51,9 @@ export default function SignIn() {
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Button title="Sign in" onPress={onSubmit} loading={loading} disabled={!email || !password} />
+            <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
+              Forgot password?
+            </Link>
           </View>
 
           <View style={styles.footer}>
@@ -72,6 +75,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: spacing.xs, fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg },
   form: { marginTop: spacing.md },
   error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
+  forgotLink: { color: colors.primary, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: spacing.md },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.lg },
   footerText: { color: colors.textMuted, fontSize: 14 },
   link: { color: colors.primary, fontSize: 14, fontWeight: '700' },

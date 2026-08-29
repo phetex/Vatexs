@@ -1,11 +1,29 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { createSessionFromUrl } from '../src/lib/authDeepLink';
 import { colors } from '../src/theme/colors';
 
 function RootNavigator() {
   const { session, loading } = useAuth();
+  const router = useRouter();
+  const url = Linking.useLinkingURL();
+
+  useEffect(() => {
+    if (!url) return;
+    createSessionFromUrl(url)
+      .then((result) => {
+        if (result?.type === 'recovery') {
+          router.push('/update-password');
+        }
+      })
+      .catch(() => {
+        // Not an auth link (e.g. the Paystack payment callback) — ignore.
+      });
+  }, [url]);
 
   if (loading) {
     return (
@@ -27,6 +45,7 @@ function RootNavigator() {
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile', presentation: 'modal' }} />
         <Stack.Screen name="payout-setup" options={{ headerShown: true, title: 'Payout account', presentation: 'modal' }} />
         <Stack.Screen name="orders" options={{ headerShown: true, title: 'Orders' }} />
+        <Stack.Screen name="update-password" options={{ headerShown: true, title: 'Set new password' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>

@@ -6,7 +6,7 @@ export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
     const buyerId = ctx.userClaims!.id;
     const buyerEmail = ctx.userClaims!.email;
-    const { listing_id } = await req.json();
+    const { listing_id, redirect_url } = await req.json();
 
     if (!listing_id) {
       return Response.json({ error: 'listing_id is required' }, { status: 400 });
@@ -62,7 +62,7 @@ export default {
         email: buyerEmail!,
         amountKobo: Math.round(Number(listing.price) * 100),
         reference,
-        callbackUrl: 'vatexs://payment-callback',
+        callbackUrl: redirect_url || 'vatexs://payment-callback',
         metadata: { order_id: order.id, listing_id: listing.id, listing_title: listing.title },
       });
 

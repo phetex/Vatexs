@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { Button } from '../../src/components/Button';
 import { useAuth } from '../../src/context/AuthContext';
 import { fetchListing } from '../../src/hooks/useListings';
@@ -59,13 +60,14 @@ export default function ListingDetail() {
     if (!listing) return;
     setPaying(true);
     try {
+      const redirectUrl = Linking.createURL('payment-callback');
       const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: { listing_id: listing.id },
+        body: { listing_id: listing.id, redirect_url: redirectUrl },
       });
       if (error || data?.error) {
         throw new Error(data?.error ?? error?.message ?? 'Could not start checkout.');
       }
-      await WebBrowser.openAuthSessionAsync(data.authorization_url, 'vatexs://payment-callback');
+      await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUrl);
       const refreshed = await fetchListing(listing.id);
       setListing(refreshed);
       router.push('/orders');
