@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
@@ -19,7 +18,7 @@ export default function ForgotPassword() {
     setError(null);
     setLoading(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: Linking.createURL('reset-password'),
+      redirectTo: 'https://vatexs.com/reset-password.html',
     });
     setLoading(false);
     if (resetError) {
@@ -38,8 +37,8 @@ export default function ForgotPassword() {
           {sent ? (
             <View>
               <Text style={styles.subtitle}>
-                If an account exists for {email.trim()}, we've sent a link to reset your password. Open it on this
-                device to continue.
+                If an account exists for {email.trim()}, we've sent a link to reset your password. Open it to set a
+                new password, then come back and sign in.
               </Text>
               <Button title="Back to sign in" variant="outline" onPress={() => router.replace('/(auth)/sign-in')} style={styles.backButton} />
             </View>

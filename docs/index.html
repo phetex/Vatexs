@@ -2,6 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+  // Supabase's auth emails always land here regardless of the requested
+  // redirect_to, so forward recovery links on to the page that handles them.
+  (function () {
+    var hash = location.hash.replace(/^#/, '');
+    var params = new URLSearchParams(hash || location.search);
+    if (params.get('access_token') || params.get('error')) {
+      location.replace('/reset-password.html' + location.hash + location.search);
+    }
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vatexs — Buy and sell fashion, tech, home & more</title>
 <meta name="description" content="Vatexs is a marketplace app for buying and selling fashion, tech, home goods and more, with secure in-app escrow payments.">
