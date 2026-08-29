@@ -77,3 +77,37 @@ export interface ConversationWithDetails extends Conversation {
   messages: Pick<Message, 'body' | 'created_at' | 'sender_id'>[];
 }
 
+export type OrderStatus = 'pending' | 'paid' | 'released' | 'refunded' | 'cancelled';
+
+export interface Order {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  amount: number;
+  currency: string;
+  commission_amount: number;
+  payout_amount: number;
+  paystack_reference: string;
+  status: OrderStatus;
+  created_at: string;
+  paid_at: string | null;
+  released_at: string | null;
+}
+
+export interface OrderWithDetails extends Order {
+  listings: Pick<Listing, 'id' | 'title'> & { listing_images: Pick<ListingImage, 'url'>[] };
+  buyer: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null;
+  seller: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null;
+}
+
+export interface SellerPayoutAccount {
+  seller_id: string;
+  paystack_recipient_code: string;
+  bank_name: string;
+  account_name: string;
+  account_number_last4: string;
+  created_at: string;
+  updated_at: string;
+}
+

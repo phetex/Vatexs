@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { Button } from '../../src/components/Button';
 import { useAuth } from '../../src/context/AuthContext';
 import { fetchListing } from '../../src/hooks/useListings';
@@ -30,6 +31,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [paying, setPaying] = useState(false);
   const { isFavorite, toggle } = useFavorite(id);
 
   useEffect(() => {
@@ -50,6 +52,27 @@ export default function ListingDetail() {
       Alert.alert('Could not start conversation', err?.message ?? 'Please try again.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const onBuyNow = async () => {
+    if (!listing) return;
+    setPaying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('initialize-payment', {
+        body: { listing_id: listing.id },
+      });
+      if (error || data?.error) {
+        throw new Error(data?.error ?? error?.message ?? 'Could not start checkout.');
+      }
+      await WebBrowser.openAuthSessionAsync(data.authorization_url, 'vatexs://payment-callback');
+      const refreshed = await fetchListing(listing.id);
+      setListing(refreshed);
+      router.push('/orders');
+    } catch (err: any) {
+      Alert.alert('Could not start checkout', err?.message ?? 'Please try again.');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -175,6 +198,23 @@ export default function ListingDetail() {
               <Button title="Delete" variant="danger" onPress={onDelete} style={{ flex: 1 }} />
             </View>
           )
+        ) : listing.currency === 'NGN' ? (
+          <View>
+            <Button
+              title={`Buy now — ${formatPrice(listing.price, listing.currency)}`}
+              onPress={onBuyNow}
+              loading={paying}
+              disabled={listing.status === 'sold'}
+            />
+            <Button
+              title="Message seller"
+              variant="outline"
+              onPress={onMessageSeller}
+              loading={busy}
+              disabled={listing.status === 'sold'}
+              style={styles.secondaryFooterButton}
+            />
+          </View>
         ) : (
           <Button title="Message seller" onPress={onMessageSeller} loading={busy} disabled={listing.status === 'sold'} />
         )}
@@ -207,4 +247,5 @@ const styles = StyleSheet.create({
   sellerName: { fontSize: 14, fontWeight: '600', color: colors.text },
   footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
   footerRow: { flexDirection: 'row' },
+  secondaryFooterButton: { marginTop: spacing.sm },
 });

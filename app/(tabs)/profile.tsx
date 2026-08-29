@@ -36,6 +36,8 @@ export default function Profile() {
               {session?.user.email ? <Text style={styles.email}>{session.user.email}</Text> : null}
               <View style={styles.headerActions}>
                 <Button title="Edit profile" variant="outline" onPress={() => router.push('/edit-profile')} style={styles.editButton} />
+                <Button title="Orders" variant="outline" onPress={() => router.push('/orders')} style={styles.editButton} />
+                <Button title="Payout account" variant="outline" onPress={() => router.push('/payout-setup')} style={styles.editButton} />
               </View>
             </View>
             <Text style={styles.sectionTitle}>Your listings</Text>
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: spacing.md },
   email: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  headerActions: { marginTop: spacing.md, width: '100%' },
+  headerActions: { marginTop: spacing.md, width: '100%', gap: spacing.sm },
   editButton: { width: '100%' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
   signOut: { marginTop: spacing.lg },

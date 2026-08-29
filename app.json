@@ -32,7 +32,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vatexs uses your photos so you can add pictures to your listings."
+          "photosPermission": "Vatexs uses your photos so you can add pictures to your listings.",
+          "microphonePermission": false
         }
       ],
       [
@@ -43,10 +44,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#5B4EFF"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f20e56e-aa14-462c-8a57-82299e7cf7e9"
+      }
+    },
+    "owner": "assam1"
   }
 }

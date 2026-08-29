@@ -25,6 +25,8 @@ function RootNavigator() {
         />
         <Stack.Screen name="chat/[id]" options={{ headerShown: true, headerTintColor: colors.text }} />
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile', presentation: 'modal' }} />
+        <Stack.Screen name="payout-setup" options={{ headerShown: true, title: 'Payout account', presentation: 'modal' }} />
+        <Stack.Screen name="orders" options={{ headerShown: true, title: 'Orders' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>
