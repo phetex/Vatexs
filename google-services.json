@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "190609168945",
+    "project_id": "vatexs",
+    "storage_bucket": "vatexs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:190609168945:android:12c0d2dd1c09de23831310",
+        "android_client_info": {
+          "package_name": "com.vatexs.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkvO6wKlDo35PQWqCrhkFKHZMhXge7_aY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
