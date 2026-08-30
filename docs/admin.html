@@ -111,11 +111,38 @@
     </svg>
   </span>
   <h1>Vatexs Admin</h1>
-  <div id="login-error" class="login-error"></div>
-  <input id="login-email" type="email" placeholder="Email" autocomplete="email">
-  <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
-  <button class="btn btn-primary" style="width:100%;" id="login-btn">Sign in</button>
-  <p class="hint">Admin access only. Sign in with your Vatexs account.</p>
+
+  <div id="auth-signin">
+    <div id="login-error" class="login-error"></div>
+    <input id="login-email" type="email" placeholder="Email" autocomplete="email">
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%;" id="login-btn">Sign in</button>
+    <p class="hint">
+      Admin access only.
+      <a href="#" id="show-forgot">Forgot password?</a> ·
+      <a href="#" id="show-signup">Create account</a>
+    </p>
+  </div>
+
+  <div id="auth-signup" style="display:none;">
+    <div id="signup-error" class="login-error"></div>
+    <input id="signup-name" type="text" placeholder="Full name" autocomplete="name">
+    <input id="signup-email" type="email" placeholder="Email" autocomplete="email">
+    <input id="signup-password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password">
+    <button class="btn btn-primary" style="width:100%;" id="signup-btn">Create account</button>
+    <p class="hint">
+      Creating an account here does not grant admin access on its own — an existing admin needs to flag your account.
+      <br><a href="#" id="show-signin-from-signup">Back to sign in</a>
+    </p>
+  </div>
+
+  <div id="auth-forgot" style="display:none;">
+    <div id="forgot-error" class="login-error"></div>
+    <div id="forgot-success" class="hint" style="display:none; color: #1CB566;">Check your email for a reset link.</div>
+    <input id="forgot-email" type="email" placeholder="Email" autocomplete="email">
+    <button class="btn btn-primary" style="width:100%;" id="forgot-btn">Send reset link</button>
+    <p class="hint"><a href="#" id="show-signin-from-forgot">Back to sign in</a></p>
+  </div>
 </div>
 
 <div class="admin-shell" id="admin-shell">
@@ -227,6 +254,7 @@
   function showLogin() {
     document.getElementById('login-view').style.display = 'block';
     document.getElementById('admin-shell').classList.remove('active');
+    showAuthView('signin');
   }
 
   function showAdmin() {
@@ -250,6 +278,48 @@
   document.getElementById('signout-btn').addEventListener('click', async () => {
     await supabase.auth.signOut();
     showLogin();
+  });
+
+  // ---------- Sign up / Forgot password view toggles ----------
+  function showAuthView(view) {
+    document.getElementById('auth-signin').style.display = view === 'signin' ? 'block' : 'none';
+    document.getElementById('auth-signup').style.display = view === 'signup' ? 'block' : 'none';
+    document.getElementById('auth-forgot').style.display = view === 'forgot' ? 'block' : 'none';
+  }
+
+  document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showAuthView('signup'); });
+  document.getElementById('show-forgot').addEventListener('click', (e) => { e.preventDefault(); showAuthView('forgot'); });
+  document.getElementById('show-signin-from-signup').addEventListener('click', (e) => { e.preventDefault(); showAuthView('signin'); });
+  document.getElementById('show-signin-from-forgot').addEventListener('click', (e) => { e.preventDefault(); showAuthView('signin'); });
+
+  document.getElementById('signup-btn').addEventListener('click', async () => {
+    const fullName = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const errEl = document.getElementById('signup-error');
+    errEl.textContent = '';
+    if (!fullName || !email || password.length < 6) {
+      errEl.textContent = 'Fill in your name, email, and a password of at least 6 characters.';
+      return;
+    }
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+    if (error) { errEl.textContent = error.message; return; }
+    errEl.style.color = '#1CB566';
+    errEl.textContent = 'Account created. If email confirmation is required, check your inbox before signing in.';
+  });
+
+  document.getElementById('forgot-btn').addEventListener('click', async () => {
+    const email = document.getElementById('forgot-email').value.trim();
+    const errEl = document.getElementById('forgot-error');
+    const successEl = document.getElementById('forgot-success');
+    errEl.textContent = '';
+    successEl.style.display = 'none';
+    if (!email) { errEl.textContent = 'Enter your email first.'; return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://vatexs.store/reset-password.html',
+    });
+    if (error) { errEl.textContent = error.message; return; }
+    successEl.style.display = 'block';
   });
 
   // ---------- Nav ----------
