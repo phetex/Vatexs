@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { verifyWebhookSignature } from '../_shared/paystack.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 export default {
   fetch: withSupabase({ auth: 'none' }, async (req, ctx) => {
@@ -20,7 +21,7 @@ export default {
 
       const { data: order } = await ctx.supabaseAdmin
         .from('orders')
-        .select('id, listing_id, amount, status')
+        .select('id, listing_id, seller_id, amount, status, listings ( title )')
         .eq('paystack_reference', reference)
         .single();
 
@@ -35,6 +36,12 @@ export default {
           .update({ status: 'sold' })
           .eq('id', order.listing_id)
           .eq('status', 'active');
+
+        const listingTitle = (order.listings as unknown as { title: string } | null)?.title ?? 'your item';
+        await sendPushToUser(ctx.supabaseAdmin, order.seller_id, 'You made a sale! 🎉', `Someone just paid for "${listingTitle}".`, {
+          type: 'order_paid',
+          order_id: order.id,
+        });
       }
     }
 

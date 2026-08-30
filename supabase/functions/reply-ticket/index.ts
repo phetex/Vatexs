@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { sendSupportNotification, sendUserNotification } from '../_shared/resend.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -53,11 +54,19 @@ export default {
           `<p>Vatexs support replied to your ticket "${ticket.subject}":</p><p>${body}</p>`
         );
       }
+      await sendPushToUser(ctx.supabaseAdmin, ticket.reporter_id, 'Vatexs Support replied', ticket.subject, {
+        type: 'ticket_reply',
+        ticket_id,
+      });
     } else {
       await sendSupportNotification(
         `[Vatexs] New reply on ticket: ${ticket.subject}`,
         `<p>${body}</p>`
       );
+      const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+      for (const admin of admins ?? []) {
+        await sendPushToUser(ctx.supabaseAdmin, admin.id, 'New ticket reply', ticket.subject, { type: 'ticket_reply', ticket_id });
+      }
     }
 
     return Response.json({ sent: true });

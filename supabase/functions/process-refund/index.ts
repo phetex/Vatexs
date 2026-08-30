@@ -2,6 +2,7 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { refundTransaction } from '../_shared/paystack.ts';
 import { sendUserNotification } from '../_shared/resend.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -61,6 +62,11 @@ export default {
         `<p>Your payment has been refunded and should appear back on your original payment method shortly.</p>`
       );
     }
+
+    await sendPushToUser(ctx.supabaseAdmin, order.buyer_id, 'Order refunded', 'Your payment has been refunded and is on its way back to you.', {
+      type: 'order_refunded',
+      order_id: order.id,
+    });
 
     return Response.json({ refunded: true });
   }),

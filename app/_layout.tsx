@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { createSessionFromUrl } from '../src/lib/authDeepLink';
+import { registerForPushNotifications } from '../src/lib/pushNotifications';
 import { colors } from '../src/theme/colors';
 
 function RootNavigator() {
@@ -24,6 +25,10 @@ function RootNavigator() {
         // Not an auth link (e.g. the Paystack payment callback) — ignore.
       });
   }, [url]);
+
+  useEffect(() => {
+    if (session) registerForPushNotifications(session.user.id);
+  }, [session?.user.id]);
 
   if (loading) {
     return (

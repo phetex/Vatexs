@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { initiateTransfer } from '../_shared/paystack.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -52,6 +53,11 @@ export default {
       .from('orders')
       .update({ status: 'released', released_at: new Date().toISOString() })
       .eq('id', order.id);
+
+    await sendPushToUser(ctx.supabaseAdmin, order.seller_id, 'Payment released 💸', 'The buyer confirmed receipt and your payout is on its way.', {
+      type: 'order_released',
+      order_id: order.id,
+    });
 
     return Response.json({ released: true });
   }),

@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { sendUserNotification } from '../_shared/resend.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -41,6 +42,11 @@ export default {
          ${resolution_note ? `<p>${resolution_note}</p>` : ''}`
       );
     }
+
+    await sendPushToUser(ctx.supabaseAdmin, ticket.reporter_id, `Ticket ${status}`, ticket.subject, {
+      type: 'ticket_resolved',
+      ticket_id,
+    });
 
     return Response.json({ updated: true });
   }),

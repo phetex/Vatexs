@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Vatexs</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%235B4EFF%22/><path d=%22M25 20 L50 74 L75 20%22 stroke=%22white%22 stroke-width=%2215%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 fill=%22none%22/></svg>">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { background: var(--surface); }
+  .admin-shell { display: none; min-height: 100vh; grid-template-columns: 220px 1fr; }
+  .admin-shell.active { display: grid; }
+
+  .admin-sidebar {
+    background: var(--text);
+    color: #fff;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .admin-sidebar .brand { color: #fff; margin-bottom: 32px; }
+  .admin-sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .admin-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; background: none; text-align: left; width: 100%;
+  }
+  .admin-nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .admin-nav-item.active { background: var(--primary); color: #fff; }
+  .admin-signout { color: rgba(255,255,255,0.5); font-size: 13px; background: none; border: none; cursor: pointer; text-align: left; padding: 10px 12px; }
+  .admin-signout:hover { color: #fff; }
+
+  .admin-main { padding: 32px 40px; max-width: 980px; }
+  .admin-panel { display: none; }
+  .admin-panel.active { display: block; }
+  .admin-panel h1 { font-size: 24px; font-weight: 800; margin: 0 0 24px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .stat-card .num { font-size: 28px; font-weight: 800; }
+  .stat-card .label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .list-item {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px; margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s;
+  }
+  .list-item:hover { box-shadow: 0 8px 20px -12px rgba(20,20,31,0.2); }
+  .list-item-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .list-item-title { font-weight: 700; font-size: 15px; }
+  .list-item-meta { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+  .list-item-preview { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+  .pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.open { background: #FFE9DE; color: #FF6B4A; }
+  .pill.in_review { background: var(--primary-light); color: var(--primary); }
+  .pill.resolved, .pill.released, .pill.paid { background: #DEF7E7; color: #1CB566; }
+  .pill.refunded { background: #DEF7E7; color: #1CB566; }
+  .pill.closed, .pill.cancelled { background: var(--surface); color: var(--text-faint); }
+  .pill.pending { background: var(--surface); color: var(--text-muted); }
+
+  /* Ticket detail modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(20,20,31,0.5);
+    align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--bg); border-radius: var(--radius-lg); width: 100%; max-width: 560px;
+    max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: start; }
+  .modal-header h2 { font-size: 17px; margin: 0; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-faint); }
+  .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); }
+
+  .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; margin-bottom: 8px; font-size: 14px; }
+  .msg-bubble.mine { background: var(--primary); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+  .msg-bubble.theirs { background: var(--surface); margin-right: auto; border-bottom-left-radius: 4px; }
+  .msg-time { font-size: 10px; opacity: 0.7; margin-top: 4px; }
+
+  .reply-row { display: flex; gap: 8px; }
+  .reply-row input { flex: 1; height: 42px; border-radius: var(--radius-md); border: 1.5px solid var(--border); padding: 0 12px; font-size: 14px; }
+  .btn { padding: 10px 16px; border-radius: var(--radius-md); border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+  .btn-danger { background: var(--accent); color: #fff; }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* Login */
+  .login-wrap { max-width: 360px; margin: 96px auto; padding: 0 24px; text-align: center; }
+  .login-wrap .logo-mark { margin: 0 auto 20px; }
+  .login-wrap h1 { font-size: 22px; margin: 0 0 24px; }
+  .login-wrap input {
+    width: 100%; height: 46px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 14px; font-size: 15px; margin-bottom: 12px;
+  }
+  .login-error { color: #C0392B; font-size: 13px; margin-bottom: 12px; }
+  .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login-view">
+  <span class="logo-mark" style="display:inline-flex;width:48px;height:48px;">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="24" height="24" style="margin:auto;">
+      <path d="M25 20 L50 74 L75 20" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </span>
+  <h1>Vatexs Admin</h1>
+  <div id="login-error" class="login-error"></div>
+  <input id="login-email" type="email" placeholder="Email" autocomplete="email">
+  <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+  <button class="btn btn-primary" style="width:100%;" id="login-btn">Sign in</button>
+  <p class="hint">Admin access only. Sign in with your Vatexs account.</p>
+</div>
+
+<div class="admin-shell" id="admin-shell">
+  <aside class="admin-sidebar">
+    <span class="brand">
+      <span class="logo-mark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M25 20 L50 74 L75 20" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
+      Vatexs
+    </span>
+    <nav>
+      <button class="admin-nav-item active" data-panel="overview">Overview</button>
+      <button class="admin-nav-item" data-panel="tickets">Tickets</button>
+      <button class="admin-nav-item" data-panel="orders">Orders</button>
+    </nav>
+    <button class="admin-signout" id="signout-btn">Sign out</button>
+  </aside>
+
+  <main class="admin-main">
+    <section class="admin-panel active" id="panel-overview">
+      <h1>Overview</h1>
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card"><div class="num">—</div><div class="label">Open tickets</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Total orders</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Listings</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Users</div></div>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="panel-tickets">
+      <h1>Tickets</h1>
+      <div id="tickets-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-orders">
+      <h1>Orders</h1>
+      <div id="orders-list"></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-overlay" id="ticket-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="ticket-modal-subject"></h2>
+        <div class="list-item-meta" id="ticket-modal-meta"></div>
+      </div>
+      <button class="modal-close" id="ticket-modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="ticket-modal-messages"></div>
+    <div class="modal-footer">
+      <div class="reply-row">
+        <input id="ticket-reply-input" placeholder="Type a reply…">
+        <button class="btn btn-primary" id="ticket-reply-send">Send</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" id="ticket-resolve-btn">Mark resolved</button>
+        <button class="btn btn-outline" id="ticket-close-btn">Close</button>
+        <button class="btn btn-danger" id="ticket-refund-btn" style="display:none;">Refund order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const supabase = createClient(
+    'https://drldzoczbaqdyxqpehhy.supabase.co',
+    'sb_publishable_z1jbabZtNrsJgoJTwjGXSw_FETajRuV'
+  );
+
+  const CATEGORY_LABEL = {
+    item_not_received: 'Item not received',
+    item_not_as_described: 'Not as described',
+    payment_issue: 'Payment issue',
+    account: 'Account issue',
+    other: 'Other',
+  };
+
+  let currentTicket = null;
+
+  function fmtMoney(amount, currency) {
+    const symbols = { GBP: '£', USD: '$', EUR: '€', NGN: '₦' };
+    return `${symbols[currency] || currency + ' '}${Number(amount).toLocaleString()}`;
+  }
+
+  function timeAgo(iso) {
+    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  // ---------- Auth ----------
+  async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return showLogin();
+
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single();
+    if (!profile?.is_admin) {
+      document.getElementById('login-error').textContent = 'This account does not have admin access.';
+      await supabase.auth.signOut();
+      return showLogin();
+    }
+    showAdmin();
+  }
+
+  function showLogin() {
+    document.getElementById('login-view').style.display = 'block';
+    document.getElementById('admin-shell').classList.remove('active');
+  }
+
+  function showAdmin() {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('admin-shell').classList.add('active');
+    loadOverview();
+    loadTickets();
+    loadOrders();
+  }
+
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent = error.message; return; }
+    checkSession();
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    showLogin();
+  });
+
+  // ---------- Nav ----------
+  document.querySelectorAll('.admin-nav-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.admin-nav-item').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.admin-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+
+  // ---------- Overview ----------
+  async function loadOverview() {
+    const [{ count: openTickets }, { count: orderCount }, { count: listingCount }, { count: userCount }] = await Promise.all([
+      supabase.from('support_tickets').select('id', { count: 'exact', head: true }).in('status', ['open', 'in_review']),
+      supabase.from('orders').select('id', { count: 'exact', head: true }),
+      supabase.from('listings').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    ]);
+    const cards = document.querySelectorAll('#stat-grid .stat-card .num');
+    cards[0].textContent = openTickets ?? 0;
+    cards[1].textContent = orderCount ?? 0;
+    cards[2].textContent = listingCount ?? 0;
+    cards[3].textContent = userCount ?? 0;
+  }
+
+  // ---------- Tickets ----------
+  async function loadTickets() {
+    const { data: tickets } = await supabase
+      .from('support_tickets')
+      .select('*, reporter:profiles!support_tickets_reporter_id_fkey(id,full_name), orders(id,amount,currency,status,paystack_reference)')
+      .order('created_at', { ascending: false });
+
+    const list = document.getElementById('tickets-list');
+    list.innerHTML = '';
+    (tickets || []).forEach((t) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${t.subject}</div>
+          <span class="pill ${t.status}">${t.status.replace('_', ' ')}</span>
+        </div>
+        <div class="list-item-meta">${CATEGORY_LABEL[t.category] || t.category} · From ${t.reporter?.full_name || 'Vatexs user'} · ${timeAgo(t.created_at)}</div>
+        <div class="list-item-preview">${t.message}</div>
+      `;
+      el.addEventListener('click', () => openTicket(t));
+      list.appendChild(el);
+    });
+    if (!tickets || tickets.length === 0) list.innerHTML = '<p class="hint">No tickets yet.</p>';
+  }
+
+  async function openTicket(ticket) {
+    currentTicket = ticket;
+    document.getElementById('ticket-modal-subject').textContent = ticket.subject;
+    document.getElementById('ticket-modal-meta').textContent =
+      `${CATEGORY_LABEL[ticket.category] || ticket.category}${ticket.orders ? ' · Order: ' + fmtMoney(ticket.orders.amount, ticket.orders.currency) + ' (' + ticket.orders.status + ')' : ''}`;
+
+    document.getElementById('ticket-refund-btn').style.display = ticket.orders && ticket.orders.status === 'paid' ? 'inline-block' : 'none';
+
+    await loadTicketMessages(ticket.id);
+    document.getElementById('ticket-modal').classList.add('active');
+  }
+
+  async function loadTicketMessages(ticketId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const { data: messages } = await supabase.from('ticket_messages').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
+    const box = document.getElementById('ticket-modal-messages');
+    box.innerHTML = '';
+    (messages || []).forEach((m) => {
+      const mine = m.sender_id === session.user.id;
+      const div = document.createElement('div');
+      div.className = 'msg-bubble ' + (mine ? 'mine' : 'theirs');
+      div.innerHTML = `${m.body}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
+      box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
+  }
+
+  document.getElementById('ticket-modal-close').addEventListener('click', () => {
+    document.getElementById('ticket-modal').classList.remove('active');
+    currentTicket = null;
+  });
+
+  document.getElementById('ticket-reply-send').addEventListener('click', async () => {
+    const input = document.getElementById('ticket-reply-input');
+    const body = input.value.trim();
+    if (!body || !currentTicket) return;
+    input.value = '';
+    const { error } = await supabase.functions.invoke('reply-ticket', { body: { ticket_id: currentTicket.id, body } });
+    if (error) { alert('Could not send: ' + error.message); return; }
+    await loadTicketMessages(currentTicket.id);
+  });
+
+  async function setTicketStatus(status) {
+    if (!currentTicket) return;
+    const { error } = await supabase.functions.invoke('resolve-ticket', { body: { ticket_id: currentTicket.id, status } });
+    if (error) { alert('Could not update: ' + error.message); return; }
+    document.getElementById('ticket-modal').classList.remove('active');
+    loadTickets();
+    loadOverview();
+  }
+
+  document.getElementById('ticket-resolve-btn').addEventListener('click', () => setTicketStatus('resolved'));
+  document.getElementById('ticket-close-btn').addEventListener('click', () => setTicketStatus('closed'));
+
+  document.getElementById('ticket-refund-btn').addEventListener('click', async () => {
+    if (!currentTicket || !currentTicket.order_id) return;
+    if (!confirm(`Refund ${fmtMoney(currentTicket.orders.amount, currentTicket.orders.currency)} to the buyer? This cannot be undone.`)) return;
+    const btn = document.getElementById('ticket-refund-btn');
+    btn.disabled = true;
+    const { data, error } = await supabase.functions.invoke('process-refund', {
+      body: { order_id: currentTicket.order_id, ticket_id: currentTicket.id },
+    });
+    btn.disabled = false;
+    if (error || data?.error) { alert('Refund failed: ' + (data?.error || error.message)); return; }
+    document.getElementById('ticket-modal').classList.remove('active');
+    loadTickets();
+    loadOrders();
+  });
+
+  // ---------- Orders ----------
+  async function loadOrders() {
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('*, listings(title), buyer:profiles!orders_buyer_id_fkey(full_name), seller:profiles!orders_seller_id_fkey(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    const list = document.getElementById('orders-list');
+    list.innerHTML = '';
+    (orders || []).forEach((o) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.style.cursor = 'default';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
+          <span class="pill ${o.status}">${o.status}</span>
+        </div>
+        <div class="list-item-meta">Buyer: ${o.buyer?.full_name || '—'} · Seller: ${o.seller?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
+      `;
+      list.appendChild(el);
+    });
+    if (!orders || orders.length === 0) list.innerHTML = '<p class="hint">No orders yet.</p>';
+  }
+
+  checkSession();
+</script>
+
+</body>
+</html>

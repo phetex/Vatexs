@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { sendSupportNotification } from '../_shared/resend.ts';
+import { sendPushToUser } from '../_shared/push.ts';
 
 const CATEGORY_LABEL: Record<string, string> = {
   item_not_received: 'Item not received',
@@ -56,6 +57,11 @@ export default {
        <p><strong>Message:</strong></p>
        <p>${message}</p>`
     );
+
+    const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+    for (const admin of admins ?? []) {
+      await sendPushToUser(ctx.supabaseAdmin, admin.id, 'New support ticket', subject, { type: 'new_ticket', ticket_id: ticket.id });
+    }
 
     return Response.json({ ticket_id: ticket.id });
   }),

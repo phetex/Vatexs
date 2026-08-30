@@ -36,8 +36,10 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId]);
 
-  const sendMessage = async (senderId: string, body: string) => {
-    const { error } = await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: senderId, body });
+  const sendMessage = async (_senderId: string, body: string) => {
+    const { error } = await supabase.functions.invoke('send-message', {
+      body: { conversation_id: conversationId, body },
+    });
     if (error) throw error;
   };
 
