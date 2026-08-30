@@ -1,4 +1,4 @@
-const SUPPORT_INBOX = 'hello@vatexs.com';
+const SUPPORT_INBOX = 'hello@vatexs.store';
 
 export async function sendSupportNotification(subject: string, html: string) {
   const key = Deno.env.get('RESEND_API_KEY');
@@ -13,7 +13,7 @@ export async function sendSupportNotification(subject: string, html: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Vatexs Support <noreply@vatexs.com>',
+      from: 'Vatexs Support <noreply@vatexs.store>',
       to: SUPPORT_INBOX,
       subject,
       html,
@@ -34,7 +34,7 @@ export async function sendUserNotification(to: string, subject: string, html: st
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Vatexs Support <noreply@vatexs.com>',
+      from: 'Vatexs Support <noreply@vatexs.store>',
       to,
       subject,
       html,

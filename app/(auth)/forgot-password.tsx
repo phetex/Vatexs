@@ -18,7 +18,7 @@ export default function ForgotPassword() {
     setError(null);
     setLoading(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: 'https://vatexs.com/reset-password.html',
+      redirectTo: 'https://vatexs.store/reset-password.html',
     });
     setLoading(false);
     if (resetError) {
