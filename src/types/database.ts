@@ -8,6 +8,7 @@ export interface Profile {
   phone: string | null;
   location: string | null;
   bio: string | null;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -109,5 +110,36 @@ export interface SellerPayoutAccount {
   account_number_last4: string;
   created_at: string;
   updated_at: string;
+}
+
+export type TicketCategory = 'item_not_received' | 'item_not_as_described' | 'payment_issue' | 'account' | 'other';
+export type TicketStatus = 'open' | 'in_review' | 'resolved' | 'refunded' | 'closed';
+
+export interface SupportTicket {
+  id: string;
+  order_id: string | null;
+  reporter_id: string;
+  category: TicketCategory;
+  subject: string;
+  message: string;
+  status: TicketStatus;
+  resolution_note: string | null;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+}
+
+export interface SupportTicketWithDetails extends SupportTicket {
+  reporter: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null;
+  orders: Pick<Order, 'id' | 'amount' | 'currency' | 'status' | 'paystack_reference'> | null;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  is_admin_reply: boolean;
+  body: string;
+  created_at: string;
 }
 

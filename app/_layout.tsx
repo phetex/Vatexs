@@ -46,6 +46,9 @@ function RootNavigator() {
         <Stack.Screen name="payout-setup" options={{ headerShown: true, title: 'Payout account', presentation: 'modal' }} />
         <Stack.Screen name="orders" options={{ headerShown: true, title: 'Orders' }} />
         <Stack.Screen name="update-password" options={{ headerShown: true, title: 'Set new password' }} />
+        <Stack.Screen name="support" options={{ headerShown: true, title: 'Support' }} />
+        <Stack.Screen name="new-ticket" options={{ headerShown: true, title: 'New ticket', presentation: 'modal' }} />
+        <Stack.Screen name="ticket/[id]" options={{ headerShown: true, title: 'Ticket' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>

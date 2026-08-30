@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../src/components/Button';
@@ -27,9 +28,11 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 };
 
 function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isBuyer: boolean; onReleased: () => void }) {
+  const router = useRouter();
   const [releasing, setReleasing] = useState(false);
   const image = order.listings.listing_images?.[0]?.url;
   const other = isBuyer ? order.seller : order.buyer;
+  const canReport = order.status === 'paid' || order.status === 'released';
 
   const onConfirmReceipt = () => {
     Alert.alert(
@@ -80,6 +83,14 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
       </View>
       {isBuyer && order.status === 'paid' ? (
         <Button title="Confirm receipt & release payment" onPress={onConfirmReceipt} loading={releasing} style={styles.releaseButton} />
+      ) : null}
+      {canReport ? (
+        <Button
+          title="Report a problem"
+          variant="outline"
+          onPress={() => router.push(`/new-ticket?orderId=${order.id}`)}
+          style={styles.releaseButton}
+        />
       ) : null}
     </View>
   );

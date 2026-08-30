@@ -94,6 +94,16 @@ export function initiateTransfer(params: InitiateTransferParams) {
   });
 }
 
+export function refundTransaction(reference: string, amountKobo?: number) {
+  return paystackFetch('/refund', {
+    method: 'POST',
+    body: JSON.stringify({
+      transaction: reference,
+      ...(amountKobo ? { amount: amountKobo } : {}),
+    }),
+  });
+}
+
 export async function verifyWebhookSignature(rawBody: string, signature: string | null) {
   if (!signature) return false;
   const key = await crypto.subtle.importKey(
