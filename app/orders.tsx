@@ -30,7 +30,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isBuyer: boolean; onReleased: () => void }) {
   const router = useRouter();
   const [releasing, setReleasing] = useState(false);
-  const image = order.listings.listing_images?.[0]?.url;
+  const image = order.listings?.listing_images?.[0]?.url;
   const other = isBuyer ? order.seller : order.buyer;
   const canReport = order.status === 'paid' || order.status === 'released';
 
@@ -69,7 +69,7 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
         )}
         <View style={{ flex: 1, marginLeft: spacing.md }}>
           <Text style={styles.orderTitle} numberOfLines={1}>
-            {order.listings.title}
+            {order.listings?.title ?? 'Listing unavailable'}
           </Text>
           <Text style={styles.orderMeta}>
             {isBuyer ? 'Seller' : 'Buyer'}: {other?.full_name || 'Vatexs user'}

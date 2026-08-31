@@ -68,7 +68,7 @@ export default function Balance() {
           <>
             <Text style={styles.sectionTitle}>Recent payouts</Text>
             {releasedOrders.map((order) => {
-              const image = order.listings.listing_images?.[0]?.url;
+              const image = order.listings?.listing_images?.[0]?.url;
               return (
                 <View key={order.id} style={styles.orderRow}>
                   {image ? (
@@ -80,7 +80,7 @@ export default function Balance() {
                   )}
                   <View style={{ flex: 1, marginLeft: spacing.md }}>
                     <Text style={styles.orderTitle} numberOfLines={1}>
-                      {order.listings.title}
+                      {order.listings?.title ?? 'Listing unavailable'}
                     </Text>
                     <Text style={styles.orderMeta}>{timeAgo(order.released_at ?? order.created_at)}</Text>
                   </View>

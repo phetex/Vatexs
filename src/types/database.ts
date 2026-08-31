@@ -102,7 +102,7 @@ export interface Order {
 }
 
 export interface OrderWithDetails extends Order {
-  listings: Pick<Listing, 'id' | 'title'> & { listing_images: Pick<ListingImage, 'url'>[] };
+  listings: (Pick<Listing, 'id' | 'title'> & { listing_images: Pick<ListingImage, 'url'>[] }) | null;
   buyer: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null;
   seller: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null;
 }
