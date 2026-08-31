@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { SupportTicketWithDetails } from '../types/database';
@@ -11,6 +11,7 @@ const TICKET_SELECT = `
 
 export function useTickets() {
   const { profile, session } = useAuth();
+  const instanceId = useId();
   const [tickets, setTickets] = useState<SupportTicketWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,13 +34,13 @@ export function useTickets() {
   useEffect(() => {
     if (!session) return;
     const channel = supabase
-      .channel('support-tickets-list')
+      .channel(`support-tickets-list-${instanceId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => fetchTickets())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session, fetchTickets]);
+  }, [session, fetchTickets, instanceId]);
 
   return { tickets, loading, refresh: fetchTickets };
 }

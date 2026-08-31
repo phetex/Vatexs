@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { ConversationWithDetails } from '../types/database';
@@ -13,6 +13,7 @@ const CONVERSATION_SELECT = `
 
 export function useConversations() {
   const { session } = useAuth();
+  const instanceId = useId();
   const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +36,7 @@ export function useConversations() {
   useEffect(() => {
     if (!session) return;
     const channel = supabase
-      .channel('conversations-list')
+      .channel(`conversations-list-${instanceId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         fetchConversations();
       })
@@ -43,7 +44,7 @@ export function useConversations() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session, fetchConversations]);
+  }, [session, fetchConversations, instanceId]);
 
   return { conversations, loading, refresh: fetchConversations };
 }

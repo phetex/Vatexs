@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { OrderWithDetails } from '../types/database';
@@ -12,6 +12,7 @@ const ORDER_SELECT = `
 
 export function useOrders() {
   const { session } = useAuth();
+  const instanceId = useId();
   const [purchases, setPurchases] = useState<OrderWithDetails[]>([]);
   const [sales, setSales] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ export function useOrders() {
   useEffect(() => {
     if (!session) return;
     const channel = supabase
-      .channel('orders-list')
+      .channel(`orders-list-${instanceId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         fetchOrders();
       })
@@ -43,7 +44,7 @@ export function useOrders() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session, fetchOrders]);
+  }, [session, fetchOrders, instanceId]);
 
   return { purchases, sales, loading, refresh: fetchOrders };
 }
