@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { useAuth } from '../../src/context/AuthContext';
-import { colors, spacing } from '../../src/theme/colors';
+import { useThemedStyles } from '../../src/context/ThemeContext';
+import { spacing } from '../../src/theme/colors';
 
 export default function SignUp() {
   const { signUp } = useAuth();
@@ -16,6 +17,18 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' as const },
+    title: { fontSize: 26, fontWeight: '800' as const, color: colors.text },
+    subtitle: { marginTop: spacing.xs, fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg },
+    form: { marginTop: spacing.md },
+    error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
+    notice: { color: colors.success, fontSize: 13, marginBottom: spacing.md },
+    footer: { flexDirection: 'row' as const, justifyContent: 'center' as const, marginTop: spacing.lg },
+    footerText: { color: colors.textMuted, fontSize: 14 },
+    link: { color: colors.primary, fontSize: 14, fontWeight: '700' as const },
+  }));
 
   const onSubmit = async () => {
     setError(null);
@@ -77,16 +90,3 @@ export default function SignUp() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' },
-  title: { fontSize: 26, fontWeight: '800', color: colors.text },
-  subtitle: { marginTop: spacing.xs, fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg },
-  form: { marginTop: spacing.md },
-  error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
-  notice: { color: colors.success, fontSize: 13, marginBottom: spacing.md },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.lg },
-  footerText: { color: colors.textMuted, fontSize: 14 },
-  link: { color: colors.primary, fontSize: 14, fontWeight: '700' },
-});

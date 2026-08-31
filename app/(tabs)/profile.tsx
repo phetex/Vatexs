@@ -1,4 +1,4 @@
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,12 +7,28 @@ import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useListings } from '../../src/hooks/useListings';
-import { colors, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { spacing } from '../../src/theme/colors';
 
 export default function Profile() {
+  const { colors } = useTheme();
   const { session, profile, signOut } = useAuth();
   const router = useRouter();
   const { listings, loading } = useListings({ sellerId: session?.user.id });
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+    row: { justifyContent: 'space-between' as const },
+    profileHeader: { alignItems: 'center' as const, paddingVertical: spacing.lg },
+    avatar: { width: 84, height: 84, borderRadius: 42 },
+    avatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center' as const, justifyContent: 'center' as const },
+    name: { fontSize: 20, fontWeight: '800' as const, color: colors.text, marginTop: spacing.md },
+    email: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+    headerActions: { marginTop: spacing.md, width: '100%' as const, gap: spacing.sm },
+    editButton: { width: '100%' as const },
+    sectionTitle: { fontSize: 16, fontWeight: '700' as const, color: colors.text, marginBottom: spacing.md },
+    signOut: { marginTop: spacing.lg },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -52,18 +68,3 @@ export default function Profile() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  row: { justifyContent: 'space-between' },
-  profileHeader: { alignItems: 'center', paddingVertical: spacing.lg },
-  avatar: { width: 84, height: 84, borderRadius: 42 },
-  avatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: spacing.md },
-  email: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  headerActions: { marginTop: spacing.md, width: '100%', gap: spacing.sm },
-  editButton: { width: '100%' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
-  signOut: { marginTop: spacing.lg },
-});

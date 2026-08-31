@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +13,8 @@ import { useFavorite } from '../../src/hooks/useFavorite';
 import { findOrCreateConversation } from '../../src/hooks/useConversations';
 import { supabase } from '../../src/lib/supabase';
 import { formatPrice, timeAgo } from '../../src/lib/format';
-import { colors, radius, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { radius, spacing } from '../../src/theme/colors';
 import type { ListingWithDetails } from '../../src/types/database';
 
 const { width } = Dimensions.get('window');
@@ -27,6 +28,7 @@ const CONDITION_LABEL: Record<string, string> = {
 
 export default function ListingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
   const { session } = useAuth();
   const router = useRouter();
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
@@ -34,6 +36,32 @@ export default function ListingDetail() {
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
   const { isFavorite, toggle } = useFavorite(id);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+    heroImage: { width, height: width },
+    heroPlaceholder: { alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.surface },
+    body: { padding: spacing.lg },
+    titleRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const },
+    favoriteButton: { padding: spacing.xs },
+    price: { fontSize: 26, fontWeight: '800' as const, color: colors.text },
+    title: { fontSize: 16, color: colors.text, marginTop: 2 },
+    metaRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, marginTop: spacing.md, gap: spacing.md },
+    metaPill: { backgroundColor: colors.primaryLight, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.pill },
+    metaPillText: { color: colors.primary, fontSize: 12, fontWeight: '700' as const },
+    metaItem: { flexDirection: 'row' as const, alignItems: 'center' as const },
+    metaText: { color: colors.textMuted, fontSize: 12, marginLeft: 4 },
+    section: { marginTop: spacing.lg },
+    sectionTitle: { fontSize: 14, fontWeight: '700' as const, color: colors.text, marginBottom: spacing.sm },
+    description: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
+    sellerRow: { flexDirection: 'row' as const, alignItems: 'center' as const },
+    sellerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: spacing.sm },
+    sellerAvatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center' as const, justifyContent: 'center' as const },
+    sellerName: { fontSize: 14, fontWeight: '600' as const, color: colors.text },
+    footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
+    footerRow: { flexDirection: 'row' as const },
+    secondaryFooterButton: { marginTop: spacing.sm },
+  }));
 
   useEffect(() => {
     fetchListing(id)
@@ -224,30 +252,3 @@ export default function ListingDetail() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  heroImage: { width, height: width },
-  heroPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  body: { padding: spacing.lg },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  favoriteButton: { padding: spacing.xs },
-  price: { fontSize: 26, fontWeight: '800', color: colors.text },
-  title: { fontSize: 16, color: colors.text, marginTop: 2 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: spacing.md, gap: spacing.md },
-  metaPill: { backgroundColor: colors.primaryLight, paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.pill },
-  metaPillText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
-  metaItem: { flexDirection: 'row', alignItems: 'center' },
-  metaText: { color: colors.textMuted, fontSize: 12, marginLeft: 4 },
-  section: { marginTop: spacing.lg },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
-  description: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
-  sellerRow: { flexDirection: 'row', alignItems: 'center' },
-  sellerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: spacing.sm },
-  sellerAvatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  sellerName: { fontSize: 14, fontWeight: '600', color: colors.text },
-  footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
-  footerRow: { flexDirection: 'row' },
-  secondaryFooterButton: { marginTop: spacing.sm },
-});

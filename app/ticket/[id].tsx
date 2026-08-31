@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,11 +9,13 @@ import { useTicketMessages } from '../../src/hooks/useTicketMessages';
 import { fetchTicket } from '../../src/hooks/useTickets';
 import { supabase } from '../../src/lib/supabase';
 import { formatPrice, timeAgo } from '../../src/lib/format';
-import { colors, radius, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { radius, spacing } from '../../src/theme/colors';
 import type { SupportTicketWithDetails } from '../../src/types/database';
 
 export default function TicketDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors } = useTheme();
   const { session, profile } = useAuth();
   const { messages, loading: messagesLoading } = useTicketMessages(id);
   const [ticket, setTicket] = useState<SupportTicketWithDetails | null>(null);
@@ -22,6 +24,56 @@ export default function TicketDetail() {
   const [sending, setSending] = useState(false);
   const [busy, setBusy] = useState(false);
   const listRef = useRef<FlatList>(null);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+    summary: { padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
+    subject: { fontSize: 17, fontWeight: '700' as const, color: colors.text },
+    orderLine: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+    list: { padding: spacing.lg },
+    bubbleRow: { flexDirection: 'row' as const, marginBottom: spacing.sm },
+    bubbleRowMine: { justifyContent: 'flex-end' as const },
+    bubbleRowTheirs: { justifyContent: 'flex-start' as const },
+    bubble: { maxWidth: '80%' as const, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.lg },
+    bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
+    bubbleTheirs: { backgroundColor: colors.surface, borderBottomLeftRadius: 4 },
+    adminTag: { fontSize: 10, fontWeight: '700' as const, color: colors.accent, marginBottom: 2 },
+    bubbleText: { fontSize: 15, color: colors.text },
+    bubbleTextMine: { color: colors.white },
+    bubbleTime: { fontSize: 10, color: colors.textFaint, marginTop: 4 },
+    bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
+    adminBar: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+    adminButton: { marginBottom: spacing.sm },
+    adminRow: { flexDirection: 'row' as const, gap: spacing.sm },
+    adminHalfButton: { flex: 1 },
+    inputBar: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-end' as const,
+      padding: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    input: {
+      flex: 1,
+      maxHeight: 100,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontSize: 15,
+      color: colors.text,
+      marginRight: spacing.sm,
+    },
+    sendButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+  }));
 
   const loadTicket = () => {
     fetchTicket(id)
@@ -154,54 +206,3 @@ export default function TicketDetail() {
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  summary: { padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },
-  subject: { fontSize: 17, fontWeight: '700', color: colors.text },
-  orderLine: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
-  list: { padding: spacing.lg },
-  bubbleRow: { flexDirection: 'row', marginBottom: spacing.sm },
-  bubbleRowMine: { justifyContent: 'flex-end' },
-  bubbleRowTheirs: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '80%', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.lg },
-  bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
-  bubbleTheirs: { backgroundColor: colors.surface, borderBottomLeftRadius: 4 },
-  adminTag: { fontSize: 10, fontWeight: '700', color: colors.accent, marginBottom: 2 },
-  bubbleText: { fontSize: 15, color: colors.text },
-  bubbleTextMine: { color: colors.white },
-  bubbleTime: { fontSize: 10, color: colors.textFaint, marginTop: 4 },
-  bubbleTimeMine: { color: 'rgba(255,255,255,0.7)' },
-  adminBar: { padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
-  adminButton: { marginBottom: spacing.sm },
-  adminRow: { flexDirection: 'row', gap: spacing.sm },
-  adminHalfButton: { flex: 1 },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  input: {
-    flex: 1,
-    maxHeight: 100,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 15,
-    color: colors.text,
-    marginRight: spacing.sm,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

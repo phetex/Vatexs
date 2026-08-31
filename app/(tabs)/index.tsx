@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryChip } from '../../src/components/CategoryChip';
 import { ListingCard } from '../../src/components/ListingCard';
@@ -7,13 +7,25 @@ import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useListings } from '../../src/hooks/useListings';
-import { colors, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { spacing } from '../../src/theme/colors';
 
 export default function Home() {
+  const { colors } = useTheme();
   const { profile } = useAuth();
   const { categories } = useCategories();
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const { listings, loading, refreshing, refresh } = useListings({ categoryId });
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+    brand: { fontSize: 24, fontWeight: '800' as const, color: colors.text, letterSpacing: -0.5 },
+    greeting: { marginTop: 2, fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
+    chipRow: { marginBottom: spacing.md },
+    chipRowContent: { paddingHorizontal: spacing.lg },
+    listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+    row: { justifyContent: 'space-between' as const },
+  }));
 
   const firstName = profile?.full_name?.split(' ')[0];
 
@@ -65,14 +77,3 @@ export default function Home() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  brand: { fontSize: 24, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
-  greeting: { marginTop: 2, fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
-  chipRow: { marginBottom: spacing.md },
-  chipRowContent: { paddingHorizontal: spacing.lg },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  row: { justifyContent: 'space-between' },
-});

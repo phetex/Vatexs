@@ -1,9 +1,31 @@
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 function Row({ icon, title, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rowIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.sm,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginRight: spacing.md,
+    },
+    rowTitle: { flex: 1, fontSize: 14, fontWeight: '600' as const, color: colors.text },
+  }));
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.rowIcon}>
@@ -16,6 +38,15 @@ function Row({ icon, title, onPress }: { icon: keyof typeof Ionicons.glyphMap; t
 }
 
 export default function Legal() {
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    intro: { fontSize: 13, color: colors.textMuted, lineHeight: 20, marginBottom: spacing.lg },
+    card: { backgroundColor: colors.surface, borderRadius: radius.md, overflow: 'hidden' as const, marginBottom: spacing.lg },
+    sectionLabel: { fontSize: 13, fontWeight: '700' as const, color: colors.textMuted, marginBottom: spacing.xs, marginTop: spacing.md, textTransform: 'uppercase' as const },
+    body: { fontSize: 13, color: colors.textMuted, lineHeight: 20 },
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -47,30 +78,3 @@ export default function Legal() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  intro: { fontSize: 13, color: colors.textMuted, lineHeight: 20, marginBottom: spacing.lg },
-  card: { backgroundColor: colors.surface, borderRadius: radius.md, overflow: 'hidden', marginBottom: spacing.lg },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  rowTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: spacing.xs, marginTop: spacing.md, textTransform: 'uppercase' },
-  body: { fontSize: 13, color: colors.textMuted, lineHeight: 20 },
-});

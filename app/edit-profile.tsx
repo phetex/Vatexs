@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { useAuth } from '../src/context/AuthContext';
 import { supabase } from '../src/lib/supabase';
-import { colors, spacing } from '../src/theme/colors';
+import { useThemedStyles } from '../src/context/ThemeContext';
+import { spacing } from '../src/theme/colors';
 
 export default function EditProfile() {
   const { session, profile, refreshProfile } = useAuth();
@@ -16,6 +17,12 @@ export default function EditProfile() {
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [saving, setSaving] = useState(false);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg },
+    textArea: { height: 90, paddingTop: spacing.sm, textAlignVertical: 'top' as const },
+    save: { marginTop: spacing.md },
+  }));
 
   const onSave = async () => {
     if (!session) return;
@@ -47,10 +54,3 @@ export default function EditProfile() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg },
-  textArea: { height: 90, paddingTop: spacing.sm, textAlignVertical: 'top' },
-  save: { marginTop: spacing.md },
-});

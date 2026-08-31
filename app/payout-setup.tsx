@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { supabase } from '../src/lib/supabase';
 import { usePayoutAccount } from '../src/hooks/usePayoutAccount';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 interface Bank {
   name: string;
@@ -14,6 +15,7 @@ interface Bank {
 }
 
 export default function PayoutSetup() {
+  const { colors } = useTheme();
   const { account, loading: accountLoading, refresh } = usePayoutAccount();
   const [banks, setBanks] = useState<Bank[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
@@ -21,6 +23,42 @@ export default function PayoutSetup() {
   const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+    loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+    currentCard: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.primaryLight,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    currentTitle: { fontSize: 14, fontWeight: '700' as const, color: colors.text },
+    currentSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    warnCard: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    warnText: { flex: 1, marginLeft: spacing.sm, fontSize: 13, color: colors.textMuted, lineHeight: 19 },
+    sectionTitle: { fontSize: 16, fontWeight: '700' as const, color: colors.text, marginBottom: spacing.md },
+    bankList: { marginTop: spacing.sm },
+    bankRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    bankName: { fontSize: 14, color: colors.text },
+    selectedBankRow: { flexDirection: 'row' as const, alignItems: 'center' as const, marginBottom: spacing.md },
+    selectedBankText: { fontSize: 15, fontWeight: '700' as const, color: colors.primary, marginLeft: 4 },
+  }));
 
   useEffect(() => {
     supabase.functions
@@ -130,40 +168,3 @@ export default function PayoutSetup() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  currentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  currentTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
-  currentSubtitle: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  warnCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  warnText: { flex: 1, marginLeft: spacing.sm, fontSize: 13, color: colors.textMuted, lineHeight: 19 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.md },
-  bankList: { marginTop: spacing.sm },
-  bankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  bankName: { fontSize: 14, color: colors.text },
-  selectedBankRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  selectedBankText: { fontSize: 15, fontWeight: '700', color: colors.primary, marginLeft: 4 },
-});

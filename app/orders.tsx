@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,8 @@ import { EmptyState } from '../src/components/EmptyState';
 import { useOrders } from '../src/hooks/useOrders';
 import { supabase } from '../src/lib/supabase';
 import { formatPrice, timeAgo } from '../src/lib/format';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 import type { OrderStatus, OrderWithDetails } from '../src/types/database';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
@@ -19,20 +20,36 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  pending: colors.textMuted,
-  paid: colors.primary,
-  released: colors.success,
-  refunded: colors.danger,
-  cancelled: colors.textFaint,
-};
-
 function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isBuyer: boolean; onReleased: () => void }) {
   const router = useRouter();
+  const { colors } = useTheme();
   const [releasing, setReleasing] = useState(false);
   const image = order.listings?.listing_images?.[0]?.url;
   const other = isBuyer ? order.seller : order.buyer;
   const canReport = order.status === 'paid' || order.status === 'released';
+  const STATUS_COLOR: Record<OrderStatus, string> = {
+    pending: colors.textMuted,
+    paid: colors.primary,
+    released: colors.success,
+    refunded: colors.danger,
+    cancelled: colors.textFaint,
+  };
+  const styles = useThemedStyles((colors) => ({
+    orderCard: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    orderRow: { flexDirection: 'row' as const, alignItems: 'center' as const },
+    orderImage: { width: 56, height: 56, borderRadius: radius.sm },
+    orderImagePlaceholder: { backgroundColor: colors.border, alignItems: 'center' as const, justifyContent: 'center' as const },
+    orderTitle: { fontSize: 14, fontWeight: '700' as const, color: colors.text },
+    orderMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    orderAmount: { fontSize: 15, fontWeight: '700' as const, color: colors.text },
+    orderStatus: { fontSize: 11, fontWeight: '600' as const, marginTop: 2, textAlign: 'right' as const },
+    releaseButton: { marginTop: spacing.md },
+  }));
 
   const onConfirmReceipt = () => {
     Alert.alert(
@@ -97,9 +114,17 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
 }
 
 export default function Orders() {
+  const { colors } = useTheme();
   const [tab, setTab] = useState<'purchases' | 'sales'>('purchases');
   const { purchases, sales, loading, refresh } = useOrders();
   const items = tab === 'purchases' ? purchases : sales;
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    tabs: { flexDirection: 'row' as const, paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.lg },
+    tabLabel: { fontSize: 15, fontWeight: '600' as const, color: colors.textFaint, paddingBottom: spacing.sm },
+    tabLabelActive: { color: colors.primary, borderBottomWidth: 2, borderBottomColor: colors.primary },
+    list: { padding: spacing.lg },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -133,25 +158,3 @@ export default function Orders() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  tabs: { flexDirection: 'row', paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.lg },
-  tabLabel: { fontSize: 15, fontWeight: '600', color: colors.textFaint, paddingBottom: spacing.sm },
-  tabLabelActive: { color: colors.primary, borderBottomWidth: 2, borderBottomColor: colors.primary },
-  list: { padding: spacing.lg },
-  orderCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  orderRow: { flexDirection: 'row', alignItems: 'center' },
-  orderImage: { width: 56, height: 56, borderRadius: radius.sm },
-  orderImagePlaceholder: { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  orderTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
-  orderMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  orderAmount: { fontSize: 15, fontWeight: '700', color: colors.text },
-  orderStatus: { fontSize: 11, fontWeight: '600', marginTop: 2, textAlign: 'right' },
-  releaseButton: { marginTop: spacing.md },
-});

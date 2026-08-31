@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../src/components/Button';
@@ -8,14 +8,32 @@ import { useAuth } from '../src/context/AuthContext';
 import { isListingFeatured, useListings } from '../src/hooks/useListings';
 import { supabase } from '../src/lib/supabase';
 import { formatPrice } from '../src/lib/format';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 const BOOST_DAYS = 7;
 
 function BoostRow({ listing, onChanged }: { listing: ReturnType<typeof useListings>['listings'][number]; onChanged: () => void }) {
+  const { colors } = useTheme();
   const [busy, setBusy] = useState(false);
   const image = listing.listing_images?.[0]?.url;
   const active = isListingFeatured(listing);
+  const styles = useThemedStyles((colors) => ({
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    image: { width: 52, height: 52, borderRadius: radius.sm },
+    imagePlaceholder: { backgroundColor: colors.border, alignItems: 'center' as const, justifyContent: 'center' as const },
+    title: { fontSize: 14, fontWeight: '700' as const, color: colors.text },
+    price: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+    activeLabel: { fontSize: 11, fontWeight: '600' as const, color: colors.primary, marginTop: 4 },
+    boostButton: { marginLeft: spacing.sm, minWidth: 84 },
+  }));
 
   const onBoost = async () => {
     setBusy(true);
@@ -72,9 +90,15 @@ function BoostRow({ listing, onChanged }: { listing: ReturnType<typeof useListin
 }
 
 export default function Promotions() {
+  const { colors } = useTheme();
   const { session } = useAuth();
   const { listings, loading, refresh } = useListings({ sellerId: session?.user.id });
   const sellable = listings.filter((l) => l.status === 'active');
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    intro: { fontSize: 13, color: colors.textMuted, lineHeight: 19, marginBottom: spacing.lg },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -95,23 +119,3 @@ export default function Promotions() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  intro: { fontSize: 13, color: colors.textMuted, lineHeight: 19, marginBottom: spacing.lg },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  image: { width: 52, height: 52, borderRadius: radius.sm },
-  imagePlaceholder: { backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 14, fontWeight: '700', color: colors.text },
-  price: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  activeLabel: { fontSize: 11, fontWeight: '600', color: colors.primary, marginTop: 4 },
-  boostButton: { marginLeft: spacing.sm, minWidth: 84 },
-});

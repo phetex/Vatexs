@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { supabase } from '../src/lib/supabase';
-import { colors, spacing } from '../src/theme/colors';
+import { useThemedStyles } from '../src/context/ThemeContext';
+import { spacing } from '../src/theme/colors';
 
 export default function UpdatePassword() {
   const router = useRouter();
@@ -13,6 +14,12 @@ export default function UpdatePassword() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg },
+    subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
+    error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
+  }));
 
   const onSubmit = async () => {
     setError(null);
@@ -62,10 +69,3 @@ export default function UpdatePassword() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg },
-  subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
-  error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
-});

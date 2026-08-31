@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,7 +12,8 @@ import { useCategories } from '../../src/hooks/useCategories';
 import { supabase } from '../../src/lib/supabase';
 import { uploadListingImage } from '../../src/lib/uploadImage';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../../src/lib/currency';
-import { colors, radius, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { radius, spacing } from '../../src/theme/colors';
 import type { Condition } from '../../src/types/database';
 
 const CONDITIONS: { value: Condition; label: string }[] = [
@@ -25,6 +26,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 const MAX_IMAGES = 6;
 
 export default function Sell() {
+  const { colors } = useTheme();
   const { session } = useAuth();
   const { categories } = useCategories();
   const router = useRouter();
@@ -38,6 +40,42 @@ export default function Sell() {
   const [condition, setCondition] = useState<Condition>('used');
   const [images, setImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
+    header: { fontSize: 24, fontWeight: '800' as const, color: colors.text, marginBottom: spacing.lg },
+    sectionLabel: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.xs },
+    chipsWrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, marginBottom: spacing.md },
+    chipsScroll: { marginBottom: spacing.md },
+    chipsScrollContent: { paddingRight: spacing.lg },
+    imageRow: { marginBottom: spacing.md },
+    imageThumbWrap: { marginRight: spacing.sm },
+    imageThumb: { width: 84, height: 84, borderRadius: radius.md, backgroundColor: colors.surface },
+    removeBadge: {
+      position: 'absolute' as const,
+      top: -6,
+      right: -6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: colors.black,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    addImage: {
+      width: 84,
+      height: 84,
+      borderRadius: radius.md,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+      borderStyle: 'dashed' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    addImageText: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+    textArea: { height: 100, paddingTop: spacing.sm, textAlignVertical: 'top' as const },
+    submit: { marginTop: spacing.lg },
+  }));
 
   const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -189,40 +227,3 @@ export default function Sell() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
-  header: { fontSize: 24, fontWeight: '800', color: colors.text, marginBottom: spacing.lg },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.xs },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
-  chipsScroll: { marginBottom: spacing.md },
-  chipsScrollContent: { paddingRight: spacing.lg },
-  imageRow: { marginBottom: spacing.md },
-  imageThumbWrap: { marginRight: spacing.sm },
-  imageThumb: { width: 84, height: 84, borderRadius: radius.md, backgroundColor: colors.surface },
-  removeBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addImage: {
-    width: 84,
-    height: 84,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addImageText: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
-  textArea: { height: 100, paddingTop: spacing.sm, textAlignVertical: 'top' },
-  submit: { marginTop: spacing.lg },
-});

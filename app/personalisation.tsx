@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { CategoryChip } from '../src/components/CategoryChip';
 import { useAuth } from '../src/context/AuthContext';
 import { useCategories } from '../src/hooks/useCategories';
 import { supabase } from '../src/lib/supabase';
-import { colors, spacing } from '../src/theme/colors';
+import { useThemedStyles } from '../src/context/ThemeContext';
+import { spacing } from '../src/theme/colors';
 
 export default function Personalisation() {
   const { profile, session, refreshProfile } = useAuth();
@@ -14,6 +15,15 @@ export default function Personalisation() {
   const [selected, setSelected] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg },
+    title: { fontSize: 22, fontWeight: '800' as const, color: colors.text, marginBottom: spacing.xs },
+    subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
+    chipsWrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const },
+    saved: { color: colors.success, fontSize: 13, fontWeight: '600' as const, marginTop: spacing.md, textAlign: 'center' as const },
+    save: { marginTop: spacing.lg },
+  }));
 
   useEffect(() => {
     if (profile?.interested_categories) setSelected(profile.interested_categories);
@@ -53,13 +63,3 @@ export default function Personalisation() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: spacing.xs },
-  subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  saved: { color: colors.success, fontSize: 13, fontWeight: '600', marginTop: spacing.md, textAlign: 'center' },
-  save: { marginTop: spacing.lg },
-});

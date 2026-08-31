@@ -1,11 +1,34 @@
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 export default function About() {
+  const { colors } = useTheme();
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl, alignItems: 'center' as const },
+    logoWrap: {
+      width: 64,
+      height: 64,
+      borderRadius: radius.lg,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginTop: spacing.md,
+    },
+    brand: { fontSize: 24, fontWeight: '800' as const, color: colors.text, marginTop: spacing.md },
+    tagline: { fontSize: 13, color: colors.textMuted, marginTop: 4, textAlign: 'center' as const },
+    body: { fontSize: 13, color: colors.textMuted, lineHeight: 20, marginTop: spacing.lg, textAlign: 'center' as const },
+    card: { width: '100%' as const, backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.lg },
+    cardRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingVertical: spacing.xs },
+    cardLabel: { fontSize: 13, color: colors.textMuted },
+    cardValue: { fontSize: 13, fontWeight: '600' as const, color: colors.primary },
+    footer: { fontSize: 11, color: colors.textFaint, marginTop: spacing.xl, textAlign: 'center' as const },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -46,25 +69,3 @@ export default function About() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl, alignItems: 'center' },
-  logoWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
-  brand: { fontSize: 24, fontWeight: '800', color: colors.text, marginTop: spacing.md },
-  tagline: { fontSize: 13, color: colors.textMuted, marginTop: 4, textAlign: 'center' },
-  body: { fontSize: 13, color: colors.textMuted, lineHeight: 20, marginTop: spacing.lg, textAlign: 'center' },
-  card: { width: '100%', backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.lg },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
-  cardLabel: { fontSize: 13, color: colors.textMuted },
-  cardValue: { fontSize: 13, fontWeight: '600', color: colors.primary },
-  footer: { fontSize: 11, color: colors.textFaint, marginTop: spacing.xl, textAlign: 'center' },
-});

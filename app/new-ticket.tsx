@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { CategoryChip } from '../src/components/CategoryChip';
 import { supabase } from '../src/lib/supabase';
-import { colors, spacing } from '../src/theme/colors';
+import { useThemedStyles } from '../src/context/ThemeContext';
+import { spacing } from '../src/theme/colors';
 import type { TicketCategory } from '../src/types/database';
 
 const CATEGORIES: { value: TicketCategory; label: string }[] = [
@@ -24,6 +25,15 @@ export default function NewTicket() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg },
+    orderNote: { fontSize: 13, color: colors.primary, fontWeight: '600' as const, marginBottom: spacing.md },
+    sectionLabel: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted, marginBottom: spacing.sm },
+    chipsWrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, marginBottom: spacing.md },
+    textArea: { height: 140, paddingTop: spacing.sm, textAlignVertical: 'top' as const },
+    submit: { marginTop: spacing.md },
+  }));
 
   const onSubmit = async () => {
     if (!category || !subject.trim() || !message.trim()) return;
@@ -75,13 +85,3 @@ export default function NewTicket() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg },
-  orderNote: { fontSize: 13, color: colors.primary, fontWeight: '600', marginBottom: spacing.md },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: spacing.sm },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
-  textArea: { height: 140, paddingTop: spacing.sm, textAlignVertical: 'top' },
-  submit: { marginTop: spacing.md },
-});

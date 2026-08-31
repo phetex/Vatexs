@@ -1,4 +1,4 @@
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,12 +6,28 @@ import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useConversations } from '../../src/hooks/useConversations';
 import { timeAgo } from '../../src/lib/format';
-import { colors, spacing } from '../../src/theme/colors';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
+import { spacing } from '../../src/theme/colors';
 
 export default function Messages() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { session } = useAuth();
   const { conversations, loading } = useConversations();
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { fontSize: 24, fontWeight: '800' as const, color: colors.text, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+    listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+    row: { flexDirection: 'row' as const, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+    avatar: { width: 52, height: 52, borderRadius: 26, marginRight: spacing.md },
+    avatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center' as const, justifyContent: 'center' as const },
+    rowBody: { flex: 1, justifyContent: 'center' as const },
+    rowTop: { flexDirection: 'row' as const, justifyContent: 'space-between' as const },
+    name: { fontSize: 15, fontWeight: '700' as const, color: colors.text, flexShrink: 1 },
+    time: { fontSize: 12, color: colors.textFaint },
+    listingTitle: { fontSize: 12, color: colors.primary, marginTop: 2 },
+    preview: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -59,18 +75,3 @@ export default function Messages() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { fontSize: 24, fontWeight: '800', color: colors.text, paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  row: { flexDirection: 'row', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  avatar: { width: 52, height: 52, borderRadius: 26, marginRight: spacing.md },
-  avatarPlaceholder: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  rowBody: { flex: 1, justifyContent: 'center' },
-  rowTop: { flexDirection: 'row', justifyContent: 'space-between' },
-  name: { fontSize: 15, fontWeight: '700', color: colors.text, flexShrink: 1 },
-  time: { fontSize: 12, color: colors.textFaint },
-  listingTitle: { fontSize: 12, color: colors.primary, marginTop: 2 },
-  preview: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-});

@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, Text, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable } from 'react-native';
@@ -7,7 +7,8 @@ import { EmptyState } from '../src/components/EmptyState';
 import { useAuth } from '../src/context/AuthContext';
 import { useTickets } from '../src/hooks/useTickets';
 import { timeAgo } from '../src/lib/format';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 import type { TicketStatus } from '../src/types/database';
 
 const STATUS_LABEL: Record<TicketStatus, string> = {
@@ -18,19 +19,38 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   closed: 'Closed',
 };
 
-const STATUS_COLOR: Record<TicketStatus, string> = {
-  open: colors.accent,
-  in_review: colors.primary,
-  resolved: colors.success,
-  refunded: colors.success,
-  closed: colors.textFaint,
-};
-
 export default function Support() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const { profile } = useAuth();
   const { tickets, loading } = useTickets();
+  const STATUS_COLOR: Record<TicketStatus, string> = {
+    open: colors.accent,
+    in_review: colors.primary,
+    resolved: colors.success,
+    refunded: colors.success,
+    closed: colors.textFaint,
+  };
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+    headerTitle: { fontSize: 22, fontWeight: '800' as const, color: colors.text, marginBottom: spacing.md },
+    newButton: { marginBottom: spacing.md },
+    list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+    },
+    cardTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
+    subject: { fontSize: 15, fontWeight: '700' as const, color: colors.text, flex: 1, marginRight: spacing.sm },
+    statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },
+    statusText: { fontSize: 11, fontWeight: '700' as const },
+    meta: { fontSize: 12, color: colors.textFaint, marginTop: 4 },
+    preview: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+  }));
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -75,23 +95,3 @@ export default function Support() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: spacing.md },
-  newButton: { marginBottom: spacing.md },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  subject: { fontSize: 15, fontWeight: '700', color: colors.text, flex: 1, marginRight: spacing.sm },
-  statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  meta: { fontSize: 12, color: colors.textFaint, marginTop: 4 },
-  preview: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
-});

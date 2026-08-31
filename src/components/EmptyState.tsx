@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../theme/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
+import { spacing } from '../theme/colors';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -9,6 +10,13 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ icon = 'file-tray-outline', title, subtitle }: EmptyStateProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: { alignItems: 'center' as const, justifyContent: 'center' as const, paddingVertical: spacing.xl * 2, paddingHorizontal: spacing.lg },
+    title: { marginTop: spacing.md, fontSize: 16, fontWeight: '600' as const, color: colors.text, textAlign: 'center' as const },
+    subtitle: { marginTop: spacing.xs, fontSize: 13, color: colors.textMuted, textAlign: 'center' as const },
+  }));
+
   return (
     <View style={styles.container}>
       <Ionicons name={icon} size={40} color={colors.textFaint} />
@@ -17,9 +25,3 @@ export function EmptyState({ icon = 'file-tray-outline', title, subtitle }: Empt
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl * 2, paddingHorizontal: spacing.lg },
-  title: { marginTop: spacing.md, fontSize: 16, fontWeight: '600', color: colors.text, textAlign: 'center' },
-  subtitle: { marginTop: spacing.xs, fontSize: 13, color: colors.textMuted, textAlign: 'center' },
-});

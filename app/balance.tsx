@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,11 +7,32 @@ import { Button } from '../src/components/Button';
 import { EmptyState } from '../src/components/EmptyState';
 import { useOrders } from '../src/hooks/useOrders';
 import { formatPrice, timeAgo } from '../src/lib/format';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 export default function Balance() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { sales, loading } = useOrders();
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    card: { backgroundColor: colors.primaryLight, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
+    cardLabel: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted },
+    cardAmount: { fontSize: 28, fontWeight: '800' as const, color: colors.text, marginTop: 4 },
+    escrowRow: { flexDirection: 'row' as const, alignItems: 'center' as const, marginTop: spacing.sm, gap: 6 },
+    escrowText: { fontSize: 12, color: colors.textMuted, flex: 1 },
+    note: { fontSize: 12, color: colors.textFaint, lineHeight: 18, marginBottom: spacing.md },
+    linkButton: { marginBottom: spacing.sm },
+    sectionTitle: { fontSize: 16, fontWeight: '700' as const, color: colors.text, marginTop: spacing.lg, marginBottom: spacing.md },
+    orderRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: spacing.sm },
+    orderImage: { width: 44, height: 44, borderRadius: radius.sm },
+    orderImagePlaceholder: { backgroundColor: colors.surface, alignItems: 'center' as const, justifyContent: 'center' as const },
+    orderTitle: { fontSize: 14, fontWeight: '600' as const, color: colors.text },
+    orderMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    orderAmount: { fontSize: 14, fontWeight: '700' as const, color: colors.success },
+  }));
 
   const summary = useMemo(() => {
     const byCurrency: Record<string, { released: number; inEscrow: number }> = {};
@@ -94,23 +115,3 @@ export default function Balance() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  card: { backgroundColor: colors.primaryLight, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md },
-  cardLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-  cardAmount: { fontSize: 28, fontWeight: '800', color: colors.text, marginTop: 4 },
-  escrowRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, gap: 6 },
-  escrowText: { fontSize: 12, color: colors.textMuted, flex: 1 },
-  note: { fontSize: 12, color: colors.textFaint, lineHeight: 18, marginBottom: spacing.md },
-  linkButton: { marginBottom: spacing.sm },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: spacing.lg, marginBottom: spacing.md },
-  orderRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
-  orderImage: { width: 44, height: 44, borderRadius: radius.sm },
-  orderImagePlaceholder: { backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  orderTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
-  orderMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  orderAmount: { fontSize: 14, fontWeight: '700', color: colors.success },
-});

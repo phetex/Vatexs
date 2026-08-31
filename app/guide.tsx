@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../src/theme/colors';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
+import { radius, spacing } from '../src/theme/colors';
 
 interface Section {
   icon: keyof typeof Ionicons.glyphMap;
@@ -43,6 +44,26 @@ const SECTIONS: Section[] = [
 ];
 
 export default function Guide() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles((colors) => ({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    title: { fontSize: 22, fontWeight: '800' as const, color: colors.text, marginBottom: spacing.xs },
+    subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
+    card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
+    iconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.sm,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginBottom: spacing.sm,
+    },
+    cardTitle: { fontSize: 15, fontWeight: '700' as const, color: colors.text, marginBottom: 4 },
+    cardBody: { fontSize: 13, color: colors.textMuted, lineHeight: 20 },
+  }));
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -62,22 +83,3 @@ export default function Guide() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  title: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: spacing.xs },
-  subtitle: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.md },
-  iconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 4 },
-  cardBody: { fontSize: 13, color: colors.textMuted, lineHeight: 20 },
-});
