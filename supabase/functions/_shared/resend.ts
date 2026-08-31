@@ -21,7 +21,12 @@ export async function sendSupportNotification(subject: string, html: string) {
   });
 }
 
-export async function sendUserNotification(to: string, subject: string, html: string) {
+export async function sendUserNotification(
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: { filename: string; content: string }[]
+) {
   const key = Deno.env.get('RESEND_API_KEY');
   if (!key) {
     console.error('RESEND_API_KEY is not set; skipping user notification email');
@@ -38,6 +43,7 @@ export async function sendUserNotification(to: string, subject: string, html: st
       to,
       subject,
       html,
+      ...(attachments ? { attachments } : {}),
     }),
   });
 }

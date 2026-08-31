@@ -7,6 +7,7 @@ import { Button } from '../src/components/Button';
 import { EmptyState } from '../src/components/EmptyState';
 import { useOrders } from '../src/hooks/useOrders';
 import { supabase } from '../src/lib/supabase';
+import { downloadOrderNote } from '../src/lib/orderNotes';
 import { formatPrice, timeAgo } from '../src/lib/format';
 import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
 import { radius, spacing } from '../src/theme/colors';
@@ -24,6 +25,7 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
   const router = useRouter();
   const { colors } = useTheme();
   const [releasing, setReleasing] = useState(false);
+  const [downloadingNote, setDownloadingNote] = useState(false);
   const image = order.listings?.listing_images?.[0]?.url;
   const other = isBuyer ? order.seller : order.buyer;
   const canReport = order.status === 'paid' || order.status === 'released';
@@ -74,6 +76,16 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
     );
   };
 
+  const onDownloadNote = async () => {
+    setDownloadingNote(true);
+    try {
+      await downloadOrderNote(order.id, isBuyer ? 'grn' : 'issue_note');
+    } catch (err) {
+      Alert.alert('Could not get document', (err as Error).message);
+    }
+    setDownloadingNote(false);
+  };
+
   return (
     <View style={styles.orderCard}>
       <View style={styles.orderRow}>
@@ -100,6 +112,15 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
       </View>
       {isBuyer && order.status === 'paid' ? (
         <Button title="Confirm receipt & release payment" onPress={onConfirmReceipt} loading={releasing} style={styles.releaseButton} />
+      ) : null}
+      {order.status === 'released' ? (
+        <Button
+          title={isBuyer ? 'Download Goods Received Note' : 'Download Issue Note'}
+          variant="outline"
+          onPress={onDownloadNote}
+          loading={downloadingNote}
+          style={styles.releaseButton}
+        />
       ) : null}
       {canReport ? (
         <Button

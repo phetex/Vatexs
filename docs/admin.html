@@ -462,10 +462,52 @@
           <span class="pill ${o.status}">${o.status}</span>
         </div>
         <div class="list-item-meta">Buyer: ${o.buyer?.full_name || '—'} · Seller: ${o.seller?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
+        ${
+          o.status === 'released'
+            ? `<div class="btn-row">
+                <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="grn">Download GRN</button>
+                <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="issue_note">Download Issue Note</button>
+              </div>`
+            : ''
+        }
       `;
       list.appendChild(el);
     });
     if (!orders || orders.length === 0) list.innerHTML = '<p class="hint">No orders yet.</p>';
+
+    list.querySelectorAll('.btn-note').forEach((btn) => {
+      btn.addEventListener('click', () => downloadOrderNote(btn.dataset.order, btn.dataset.type, btn));
+    });
+  }
+
+  // ---------- Order notes (GRN / Issue Note) ----------
+  function base64ToBlob(base64, mime) {
+    const bytes = atob(base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  async function downloadOrderNote(orderId, type, btn) {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Generating…';
+    const { data, error } = await supabase.functions.invoke('order-note', { body: { order_id: orderId, type } });
+    btn.disabled = false;
+    btn.textContent = original;
+    if (error || data?.error) {
+      alert('Could not generate document: ' + (data?.error || error.message));
+      return;
+    }
+    const blob = base64ToBlob(data.base64, 'application/pdf');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = data.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
   checkSession();
