@@ -3,7 +3,89 @@ import { withSupabase } from '@supabase/server';
 import { initiateTransfer } from '../_shared/paystack.ts';
 import { sendPushToUser } from '../_shared/push.ts';
 import { sendUserNotification } from '../_shared/resend.ts';
-import { buildOrderNotePdf, base64FromBytes } from '../_shared/pdf.ts';
+
+async function log(supabaseAdmin: any, stage: string, message: string) {
+  try {
+    await supabaseAdmin.from('push_debug_log').insert({ platform: 'confirm-receipt', stage, message: message.slice(0, 4000) });
+  } catch {
+    // best-effort diagnostics only
+  }
+}
+
+// Runs after the order is already marked released — never lets a note/email
+// problem affect the payment response, which has already been sent to the buyer.
+async function issueOrderNotes(
+  supabaseAdmin: any,
+  order: {
+    id: string;
+    buyer_id: string;
+    seller_id: string;
+    paystack_reference: string;
+    amount: number;
+    currency: string;
+    commission_amount: number;
+    payout_amount: number;
+    listings: { title: string } | null;
+    buyer: { full_name: string } | null;
+    seller: { full_name: string } | null;
+  },
+  releasedAt: string,
+  payoutAccount: { bank_name: string; account_number_last4: string }
+) {
+  try {
+    await log(supabaseAdmin, 'notes-start', `order=${order.id}`);
+    const { buildOrderNotePdf, base64FromBytes } = await import('../_shared/pdf.ts');
+
+    const itemTitle = order.listings?.title ?? 'Vatexs item';
+    const buyerName = order.buyer?.full_name || 'Vatexs buyer';
+    const sellerName = order.seller?.full_name || 'Vatexs seller';
+    const noteBase = {
+      orderId: order.id,
+      paystackReference: order.paystack_reference,
+      itemTitle,
+      amount: Number(order.amount),
+      currency: order.currency,
+      commissionAmount: Number(order.commission_amount),
+      payoutAmount: Number(order.payout_amount),
+      buyerName,
+      sellerName,
+      releasedAt,
+    };
+
+    const [grnBytes, issueNoteBytes] = await Promise.all([
+      buildOrderNotePdf({ ...noteBase, type: 'grn' }),
+      buildOrderNotePdf({ ...noteBase, type: 'issue_note', bankName: payoutAccount.bank_name, bankLast4: payoutAccount.account_number_last4 }),
+    ]);
+    await log(supabaseAdmin, 'pdfs-built', `grn=${grnBytes.length} issue=${issueNoteBytes.length}`);
+
+    const [{ data: buyerUser }, { data: sellerUser }] = await Promise.all([
+      supabaseAdmin.auth.admin.getUserById(order.buyer_id),
+      supabaseAdmin.auth.admin.getUserById(order.seller_id),
+    ]);
+
+    await Promise.all([
+      buyerUser?.user?.email
+        ? sendUserNotification(
+            buyerUser.user.email,
+            'Your Goods Received Note — Vatexs',
+            `<p>Hi ${buyerName},</p><p>Your order for <strong>${itemTitle}</strong> is closed. Attached is your Goods Received Note confirming the item and payment release.</p>`,
+            [{ filename: `vatexs-grn-${order.id.slice(0, 8)}.pdf`, content: base64FromBytes(grnBytes) }]
+          )
+        : Promise.resolve(),
+      sellerUser?.user?.email
+        ? sendUserNotification(
+            sellerUser.user.email,
+            'Your Issue Note — Vatexs',
+            `<p>Hi ${sellerName},</p><p>Your order for <strong>${itemTitle}</strong> is closed and your payout has been released. Attached is your Issue Note.</p>`,
+            [{ filename: `vatexs-issue-note-${order.id.slice(0, 8)}.pdf`, content: base64FromBytes(issueNoteBytes) }]
+          )
+        : Promise.resolve(),
+    ]);
+    await log(supabaseAdmin, 'notes-emailed', 'ok');
+  } catch (err) {
+    await log(supabaseAdmin, 'notes-exception', `${(err as Error).message}\n${(err as Error).stack ?? ''}`);
+  }
+}
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -63,60 +145,13 @@ export default {
     });
 
     // Order is closed — issue the Goods Received Note (buyer) and Issue Note (seller).
-    // Best-effort: never fail the release itself if email/PDF generation has a problem.
-    try {
-      const itemTitle = (order.listings as unknown as { title: string } | null)?.title ?? 'Vatexs item';
-      const buyerName = (order.buyer as unknown as { full_name: string } | null)?.full_name || 'Vatexs buyer';
-      const sellerName = (order.seller as unknown as { full_name: string } | null)?.full_name || 'Vatexs seller';
-      const noteBase = {
-        orderId: order.id,
-        paystackReference: order.paystack_reference,
-        itemTitle,
-        amount: Number(order.amount),
-        currency: order.currency,
-        commissionAmount: Number(order.commission_amount),
-        payoutAmount: Number(order.payout_amount),
-        buyerName,
-        sellerName,
-        releasedAt,
-      };
-
-      const [grnBytes, issueNoteBytes] = await Promise.all([
-        buildOrderNotePdf({ ...noteBase, type: 'grn' }),
-        buildOrderNotePdf({
-          ...noteBase,
-          type: 'issue_note',
-          bankName: payoutAccount.bank_name,
-          bankLast4: payoutAccount.account_number_last4,
-        }),
-      ]);
-
-      const [{ data: buyerUser }, { data: sellerUser }] = await Promise.all([
-        ctx.supabaseAdmin.auth.admin.getUserById(order.buyer_id),
-        ctx.supabaseAdmin.auth.admin.getUserById(order.seller_id),
-      ]);
-
-      await Promise.all([
-        buyerUser?.user?.email
-          ? sendUserNotification(
-              buyerUser.user.email,
-              'Your Goods Received Note — Vatexs',
-              `<p>Hi ${buyerName},</p><p>Your order for <strong>${itemTitle}</strong> is closed. Attached is your Goods Received Note confirming the item and payment release.</p>`,
-              [{ filename: `vatexs-grn-${order.id.slice(0, 8)}.pdf`, content: base64FromBytes(grnBytes) }]
-            )
-          : Promise.resolve(),
-        sellerUser?.user?.email
-          ? sendUserNotification(
-              sellerUser.user.email,
-              'Your Issue Note — Vatexs',
-              `<p>Hi ${sellerName},</p><p>Your order for <strong>${itemTitle}</strong> is closed and your payout has been released. Attached is your Issue Note.</p>`,
-              [{ filename: `vatexs-issue-note-${order.id.slice(0, 8)}.pdf`, content: base64FromBytes(issueNoteBytes) }]
-            )
-          : Promise.resolve(),
-      ]);
-    } catch (err) {
-      console.error('Failed to generate/email order notes', err);
-    }
+    // Fully decoupled from the response above: dynamic import + its own try/catch,
+    // so a PDF/email problem can never affect the payment release that already succeeded.
+    // waitUntil keeps the isolate alive to finish this after the response is sent.
+    const notesPromise = issueOrderNotes(ctx.supabaseAdmin, order as any, releasedAt, payoutAccount);
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(notesPromise);
+    else await notesPromise;
 
     return Response.json({ released: true });
   }),

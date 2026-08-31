@@ -12,6 +12,7 @@ import { fetchListing } from '../../src/hooks/useListings';
 import { useFavorite } from '../../src/hooks/useFavorite';
 import { findOrCreateConversation } from '../../src/hooks/useConversations';
 import { supabase } from '../../src/lib/supabase';
+import { functionErrorMessage } from '../../src/lib/functionError';
 import { formatPrice, timeAgo } from '../../src/lib/format';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
@@ -93,7 +94,7 @@ export default function ListingDetail() {
         body: { listing_id: listing.id, redirect_url: redirectUrl },
       });
       if (error || data?.error) {
-        throw new Error(data?.error ?? error?.message ?? 'Could not start checkout.');
+        throw new Error(await functionErrorMessage(error, data, 'Could not start checkout.'));
       }
       await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUrl);
       const refreshed = await fetchListing(listing.id);

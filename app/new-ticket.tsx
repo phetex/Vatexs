@@ -6,6 +6,7 @@ import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { CategoryChip } from '../src/components/CategoryChip';
 import { supabase } from '../src/lib/supabase';
+import { functionErrorMessage } from '../src/lib/functionError';
 import { useThemedStyles } from '../src/context/ThemeContext';
 import { spacing } from '../src/theme/colors';
 import type { TicketCategory } from '../src/types/database';
@@ -43,7 +44,7 @@ export default function NewTicket() {
     });
     setSubmitting(false);
     if (error || data?.error) {
-      Alert.alert('Could not open ticket', data?.error ?? error?.message ?? 'Please try again.');
+      Alert.alert('Could not open ticket', await functionErrorMessage(error, data, 'Please try again.'));
       return;
     }
     router.replace(`/ticket/${data.ticket_id}`);

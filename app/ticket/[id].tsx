@@ -8,6 +8,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useTicketMessages } from '../../src/hooks/useTicketMessages';
 import { fetchTicket } from '../../src/hooks/useTickets';
 import { supabase } from '../../src/lib/supabase';
+import { functionErrorMessage } from '../../src/lib/functionError';
 import { formatPrice, timeAgo } from '../../src/lib/format';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
@@ -88,9 +89,9 @@ export default function TicketDetail() {
     setSending(true);
     const body = draft.trim();
     setDraft('');
-    const { error } = await supabase.functions.invoke('reply-ticket', { body: { ticket_id: id, body } });
+    const { data, error } = await supabase.functions.invoke('reply-ticket', { body: { ticket_id: id, body } });
     setSending(false);
-    if (error) Alert.alert('Could not send', error.message);
+    if (error || data?.error) Alert.alert('Could not send', await functionErrorMessage(error, data, 'Please try again.'));
     else setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
@@ -101,9 +102,9 @@ export default function TicketDetail() {
         text: 'Confirm',
         onPress: async () => {
           setBusy(true);
-          const { error } = await supabase.functions.invoke('resolve-ticket', { body: { ticket_id: id, status } });
+          const { data, error } = await supabase.functions.invoke('resolve-ticket', { body: { ticket_id: id, status } });
           setBusy(false);
-          if (error) Alert.alert('Error', error.message);
+          if (error || data?.error) Alert.alert('Error', await functionErrorMessage(error, data, 'Please try again.'));
           else loadTicket();
         },
       },
@@ -126,7 +127,7 @@ export default function TicketDetail() {
               body: { order_id: ticket.order_id, ticket_id: ticket.id },
             });
             setBusy(false);
-            if (error || data?.error) Alert.alert('Refund failed', data?.error ?? error?.message);
+            if (error || data?.error) Alert.alert('Refund failed', await functionErrorMessage(error, data, 'Please try again.'));
             else loadTicket();
           },
         },

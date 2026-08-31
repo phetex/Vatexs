@@ -8,6 +8,7 @@ import { EmptyState } from '../src/components/EmptyState';
 import { useOrders } from '../src/hooks/useOrders';
 import { supabase } from '../src/lib/supabase';
 import { downloadOrderNote } from '../src/lib/orderNotes';
+import { functionErrorMessage } from '../src/lib/functionError';
 import { formatPrice, timeAgo } from '../src/lib/format';
 import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
 import { radius, spacing } from '../src/theme/colors';
@@ -66,7 +67,7 @@ function OrderRow({ order, isBuyer, onReleased }: { order: OrderWithDetails; isB
             const { data, error } = await supabase.functions.invoke('confirm-receipt', { body: { order_id: order.id } });
             setReleasing(false);
             if (error || data?.error) {
-              Alert.alert('Could not release payment', data?.error ?? error?.message ?? 'Please try again.');
+              Alert.alert('Could not release payment', await functionErrorMessage(error, data, 'Please try again.'));
               return;
             }
             onReleased();

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { supabase } from '../src/lib/supabase';
+import { functionErrorMessage } from '../src/lib/functionError';
 import { usePayoutAccount } from '../src/hooks/usePayoutAccount';
 import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
 import { radius, spacing } from '../src/theme/colors';
@@ -84,7 +85,7 @@ export default function PayoutSetup() {
     });
     setSubmitting(false);
     if (error || data?.error) {
-      Alert.alert('Could not verify account', data?.error ?? error?.message ?? 'Please check the details and try again.');
+      Alert.alert('Could not verify account', await functionErrorMessage(error, data, 'Please check the details and try again.'));
       return;
     }
     Alert.alert('Payout account saved', `Confirmed: ${data.account_name}`);

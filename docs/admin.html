@@ -229,6 +229,20 @@
     return `${symbols[currency] || currency + ' '}${Number(amount).toLocaleString()}`;
   }
 
+  // supabase-js only parses the JSON body of functions.invoke() on 2xx responses.
+  // For non-2xx, `data` is null and `error` is a generic message — the real
+  // `{ error: "..." }` body has to be read off `error.context` (a Response) instead.
+  async function functionErrorMessage(error, data, fallback) {
+    if (data?.error) return data.error;
+    if (error?.context?.json) {
+      try {
+        const body = await error.context.json();
+        if (body?.error) return body.error;
+      } catch {}
+    }
+    return error?.message || fallback;
+  }
+
   function timeAgo(iso) {
     const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (s < 60) return 'just now';
@@ -410,15 +424,15 @@
     const body = input.value.trim();
     if (!body || !currentTicket) return;
     input.value = '';
-    const { error } = await supabase.functions.invoke('reply-ticket', { body: { ticket_id: currentTicket.id, body } });
-    if (error) { alert('Could not send: ' + error.message); return; }
+    const { data, error } = await supabase.functions.invoke('reply-ticket', { body: { ticket_id: currentTicket.id, body } });
+    if (error || data?.error) { alert('Could not send: ' + (await functionErrorMessage(error, data, 'Please try again.'))); return; }
     await loadTicketMessages(currentTicket.id);
   });
 
   async function setTicketStatus(status) {
     if (!currentTicket) return;
-    const { error } = await supabase.functions.invoke('resolve-ticket', { body: { ticket_id: currentTicket.id, status } });
-    if (error) { alert('Could not update: ' + error.message); return; }
+    const { data, error } = await supabase.functions.invoke('resolve-ticket', { body: { ticket_id: currentTicket.id, status } });
+    if (error || data?.error) { alert('Could not update: ' + (await functionErrorMessage(error, data, 'Please try again.'))); return; }
     document.getElementById('ticket-modal').classList.remove('active');
     loadTickets();
     loadOverview();
@@ -436,7 +450,7 @@
       body: { order_id: currentTicket.order_id, ticket_id: currentTicket.id },
     });
     btn.disabled = false;
-    if (error || data?.error) { alert('Refund failed: ' + (data?.error || error.message)); return; }
+    if (error || data?.error) { alert('Refund failed: ' + (await functionErrorMessage(error, data, 'Please try again.'))); return; }
     document.getElementById('ticket-modal').classList.remove('active');
     loadTickets();
     loadOrders();
@@ -496,7 +510,7 @@
     btn.disabled = false;
     btn.textContent = original;
     if (error || data?.error) {
-      alert('Could not generate document: ' + (data?.error || error.message));
+      alert('Could not generate document: ' + (await functionErrorMessage(error, data, 'Please try again.')));
       return;
     }
     const blob = base64ToBlob(data.base64, 'application/pdf');
