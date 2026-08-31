@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { createSessionFromUrl } from '../src/lib/authDeepLink';
 import { registerForPushNotifications } from '../src/lib/pushNotifications';
 import { colors } from '../src/theme/colors';
@@ -72,10 +73,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
