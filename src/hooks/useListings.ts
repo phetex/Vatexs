@@ -9,6 +9,10 @@ const LISTING_SELECT = `
   profiles!listings_seller_id_fkey ( id, full_name, avatar_url, location, holiday_mode )
 `;
 
+export function isListingFeatured(listing: Pick<ListingWithDetails, 'featured' | 'featured_until'>) {
+  return !!listing.featured && !!listing.featured_until && new Date(listing.featured_until) > new Date();
+}
+
 interface UseListingsOptions {
   categoryId?: number | null;
   search?: string;
@@ -44,6 +48,10 @@ export function useListings({ categoryId, search, sellerId }: UseListingsOptions
         // Sellers in holiday mode stay hidden from public browsing, but a
         // seller viewing their own listings should still see everything.
         if (!sellerId) rows = rows.filter((l) => !l.profiles?.holiday_mode);
+        // Boosted listings (Promotional tools) sort first while still active.
+        if (!sellerId) {
+          rows = [...rows].sort((a, b) => Number(isListingFeatured(b)) - Number(isListingFeatured(a)));
+        }
         setListings(rows);
         setError(null);
       }

@@ -33,6 +33,8 @@ export interface Listing {
   condition: Condition;
   location: string | null;
   status: ListingStatus;
+  featured: boolean;
+  featured_until: string | null;
   created_at: string;
   updated_at: string;
 }

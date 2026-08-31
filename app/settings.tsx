@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -109,6 +109,12 @@ export default function Settings() {
           />
         </View>
 
+        <Text style={styles.sectionLabel}>Account</Text>
+        <View style={styles.card}>
+          <Row icon="receipt-outline" title="My orders" onPress={() => router.push('/orders')} />
+          <Row icon="wallet-outline" title="Balance" onPress={() => router.push('/balance')} />
+        </View>
+
         <Text style={styles.sectionLabel}>Selling</Text>
         <View style={styles.card}>
           <ToggleRow
@@ -119,6 +125,7 @@ export default function Settings() {
             onValueChange={onToggleHoliday}
             disabled={savingHoliday}
           />
+          <Row icon="rocket-outline" title="Promotional tools" subtitle="Boost a listing to the top of Home" onPress={() => router.push('/promotions')} />
         </View>
 
         <Text style={styles.sectionLabel}>Privacy</Text>
@@ -131,8 +138,12 @@ export default function Settings() {
             onValueChange={onToggleAnalytics}
             disabled={savingAnalytics}
           />
-          <Row icon="document-text-outline" title="Privacy Policy" onPress={() => Linking.openURL('https://vatexs.store/privacy.html')} />
-          <Row icon="reader-outline" title="Terms of Service" onPress={() => Linking.openURL('https://vatexs.store/terms.html')} />
+        </View>
+
+        <Text style={styles.sectionLabel}>Legal & about</Text>
+        <View style={styles.card}>
+          <Row icon="document-text-outline" title="Legal information" onPress={() => router.push('/legal')} />
+          <Row icon="information-circle-outline" title="About Vatexs" onPress={() => router.push('/about')} />
         </View>
 
         <Text style={styles.sectionLabel}>Help</Text>

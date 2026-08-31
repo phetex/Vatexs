@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, radius, spacing } from '../theme/colors';
 import { formatPrice } from '../lib/format';
+import { isListingFeatured } from '../hooks/useListings';
 import type { ListingWithDetails } from '../types/database';
 
 export function ListingCard({ listing }: { listing: ListingWithDetails }) {
@@ -21,6 +22,10 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
         {listing.status === 'sold' ? (
           <View style={styles.soldBadge}>
             <Text style={styles.soldText}>SOLD</Text>
+          </View>
+        ) : isListingFeatured(listing) ? (
+          <View style={styles.featuredBadge}>
+            <Text style={styles.soldText}>FEATURED</Text>
           </View>
         ) : null}
       </View>
@@ -51,6 +56,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   soldText: { color: colors.white, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  featuredBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+  },
   price: { marginTop: spacing.sm, fontSize: 16, fontWeight: '700', color: colors.text },
   title: { fontSize: 14, color: colors.text, marginTop: 2 },
   meta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },

@@ -57,6 +57,10 @@ function RootNavigator() {
         <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
         <Stack.Screen name="personalisation" options={{ headerShown: true, title: 'Personalisation' }} />
         <Stack.Screen name="guide" options={{ headerShown: true, title: 'Your guide to Vatexs' }} />
+        <Stack.Screen name="balance" options={{ headerShown: true, title: 'Balance' }} />
+        <Stack.Screen name="promotions" options={{ headerShown: true, title: 'Promotional tools' }} />
+        <Stack.Screen name="legal" options={{ headerShown: true, title: 'Legal information' }} />
+        <Stack.Screen name="about" options={{ headerShown: true, title: 'About Vatexs' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>
