@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryChip } from '../../src/components/CategoryChip';
@@ -17,6 +17,17 @@ export default function Home() {
 
   const firstName = profile?.full_name?.split(' ')[0];
 
+  // Interested categories (from Personalisation) float to the front of the row.
+  const orderedCategories = useMemo(() => {
+    const interested = profile?.interested_categories ?? [];
+    if (interested.length === 0) return categories;
+    return [...categories].sort((a, b) => {
+      const aIn = interested.includes(a.id) ? 0 : 1;
+      const bIn = interested.includes(b.id) ? 0 : 1;
+      return aIn - bIn;
+    });
+  }, [categories, profile?.interested_categories]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
@@ -34,7 +45,7 @@ export default function Home() {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow} contentContainerStyle={styles.chipRowContent}>
               <CategoryChip label="All" active={categoryId === null} onPress={() => setCategoryId(null)} />
-              {categories.map((c) => (
+              {orderedCategories.map((c) => (
                 <CategoryChip
                   key={c.id}
                   label={c.name}

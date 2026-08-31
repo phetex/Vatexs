@@ -14,7 +14,7 @@ export default {
 
     const { data: listing, error: listingError } = await ctx.supabaseAdmin
       .from('listings')
-      .select('id, seller_id, title, price, currency, status')
+      .select('id, seller_id, title, price, currency, status, profiles!listings_seller_id_fkey ( holiday_mode )')
       .eq('id', listing_id)
       .single();
 
@@ -23,6 +23,9 @@ export default {
     }
     if (listing.status !== 'active') {
       return Response.json({ error: 'This listing is no longer available' }, { status: 409 });
+    }
+    if ((listing.profiles as unknown as { holiday_mode: boolean } | null)?.holiday_mode) {
+      return Response.json({ error: 'This seller is currently away and not accepting orders' }, { status: 409 });
     }
     if (listing.seller_id === buyerId) {
       return Response.json({ error: 'You cannot buy your own listing' }, { status: 400 });

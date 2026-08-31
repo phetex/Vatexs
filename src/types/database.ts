@@ -9,6 +9,9 @@ export interface Profile {
   location: string | null;
   bio: string | null;
   is_admin: boolean;
+  holiday_mode: boolean;
+  interested_categories: number[];
+  analytics_opt_in: boolean;
   created_at: string;
 }
 
@@ -44,7 +47,7 @@ export interface ListingImage {
 export interface ListingWithDetails extends Listing {
   listing_images: ListingImage[];
   categories: Category | null;
-  profiles: Pick<Profile, 'id' | 'full_name' | 'avatar_url' | 'location'> | null;
+  profiles: Pick<Profile, 'id' | 'full_name' | 'avatar_url' | 'location' | 'holiday_mode'> | null;
 }
 
 export interface Favorite {

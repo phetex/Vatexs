@@ -54,6 +54,9 @@ function RootNavigator() {
         <Stack.Screen name="support" options={{ headerShown: true, title: 'Support' }} />
         <Stack.Screen name="new-ticket" options={{ headerShown: true, title: 'New ticket', presentation: 'modal' }} />
         <Stack.Screen name="ticket/[id]" options={{ headerShown: true, title: 'Ticket' }} />
+        <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+        <Stack.Screen name="personalisation" options={{ headerShown: true, title: 'Personalisation' }} />
+        <Stack.Screen name="guide" options={{ headerShown: true, title: 'Your guide to Vatexs' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={!session}>

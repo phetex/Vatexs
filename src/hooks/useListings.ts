@@ -6,7 +6,7 @@ const LISTING_SELECT = `
   *,
   listing_images ( id, listing_id, url, position ),
   categories ( id, name, slug, icon ),
-  profiles!listings_seller_id_fkey ( id, full_name, avatar_url, location )
+  profiles!listings_seller_id_fkey ( id, full_name, avatar_url, location, holiday_mode )
 `;
 
 interface UseListingsOptions {
@@ -40,7 +40,11 @@ export function useListings({ categoryId, search, sellerId }: UseListingsOptions
       const { data, error: err } = await query;
       if (err) setError(err.message);
       else {
-        setListings((data as unknown as ListingWithDetails[]) ?? []);
+        let rows = (data as unknown as ListingWithDetails[]) ?? [];
+        // Sellers in holiday mode stay hidden from public browsing, but a
+        // seller viewing their own listings should still see everything.
+        if (!sellerId) rows = rows.filter((l) => !l.profiles?.holiday_mode);
+        setListings(rows);
         setError(null);
       }
       isRefresh ? setRefreshing(false) : setLoading(false);

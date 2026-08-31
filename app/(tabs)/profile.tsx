@@ -39,6 +39,7 @@ export default function Profile() {
                 <Button title="Orders" variant="outline" onPress={() => router.push('/orders')} style={styles.editButton} />
                 <Button title="Payout account" variant="outline" onPress={() => router.push('/payout-setup')} style={styles.editButton} />
                 <Button title={profile?.is_admin ? 'Support (admin)' : 'Support'} variant="outline" onPress={() => router.push('/support')} style={styles.editButton} />
+                <Button title="Settings" variant="outline" onPress={() => router.push('/settings')} style={styles.editButton} />
               </View>
             </View>
             <Text style={styles.sectionTitle}>Your listings</Text>
