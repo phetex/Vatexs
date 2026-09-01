@@ -456,3 +456,6 @@ verify_jwt = true
 
 [functions.order-note]
 verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true

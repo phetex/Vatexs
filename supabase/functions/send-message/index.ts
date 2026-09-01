@@ -21,6 +21,16 @@ export default {
       return Response.json({ error: 'You are not part of this conversation' }, { status: 403 });
     }
 
+    const otherId = conversation.buyer_id === senderId ? conversation.seller_id : conversation.buyer_id;
+    const { count: blockCount } = await ctx.supabaseAdmin
+      .from('blocked_users')
+      .select('blocker_id', { count: 'exact', head: true })
+      .or(`and(blocker_id.eq.${senderId},blocked_id.eq.${otherId}),and(blocker_id.eq.${otherId},blocked_id.eq.${senderId})`);
+
+    if (blockCount && blockCount > 0) {
+      return Response.json({ error: 'You cannot message this user' }, { status: 403 });
+    }
+
     const { data: message, error: insertError } = await ctx.supabaseAdmin
       .from('messages')
       .insert({ conversation_id, sender_id: senderId, body: body.trim() })

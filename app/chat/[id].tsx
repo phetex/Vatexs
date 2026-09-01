@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
@@ -15,6 +15,7 @@ export default function Chat() {
   const { colors } = useTheme();
   const { session } = useAuth();
   const navigation = useNavigation();
+  const router = useRouter();
   const { messages, loading, sendMessage } = useMessages(id);
   const [conversation, setConversation] = useState<ConversationWithDetails | null>(null);
   const [draft, setDraft] = useState('');
@@ -74,11 +75,51 @@ export default function Chat() {
       .then(({ data }) => setConversation(data as unknown as ConversationWithDetails));
   }, [id]);
 
+  const other = conversation ? (conversation.buyer_id === session?.user.id ? conversation.seller : conversation.buyer) : null;
+
+  const onBlock = () => {
+    if (!other || !session) return;
+    Alert.alert(
+      `Block ${other.full_name || 'this user'}?`,
+      "You won't be able to message each other any more. You can undo this later from Settings.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('blocked_users').insert({ blocker_id: session.user.id, blocked_id: other.id });
+            if (error) {
+              Alert.alert('Could not block user', error.message);
+              return;
+            }
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const onMenu = () => {
+    if (!other) return;
+    Alert.alert(other.full_name || 'Chat', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Report a problem', onPress: () => router.push('/new-ticket') },
+      { text: 'Block user', style: 'destructive', onPress: onBlock },
+    ]);
+  };
+
   useEffect(() => {
     if (!conversation) return;
-    const other = conversation.buyer_id === session?.user.id ? conversation.seller : conversation.buyer;
-    navigation.setOptions({ title: other?.full_name || 'Chat' });
-  }, [conversation, session, navigation]);
+    navigation.setOptions({
+      title: other?.full_name || 'Chat',
+      headerRight: () => (
+        <Pressable onPress={onMenu} hitSlop={12} style={{ paddingHorizontal: 4 }}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
+        </Pressable>
+      ),
+    });
+  }, [conversation, session, navigation, colors]);
 
   const onSend = async () => {
     if (!draft.trim() || !session) return;

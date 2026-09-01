@@ -20,12 +20,17 @@ export function useConversations() {
   const fetchConversations = useCallback(async () => {
     if (!session) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('conversations')
-      .select(CONVERSATION_SELECT)
-      .or(`buyer_id.eq.${session.user.id},seller_id.eq.${session.user.id}`)
-      .order('last_message_at', { ascending: false });
-    setConversations((data as unknown as ConversationWithDetails[]) ?? []);
+    const [{ data }, { data: blocked }] = await Promise.all([
+      supabase
+        .from('conversations')
+        .select(CONVERSATION_SELECT)
+        .or(`buyer_id.eq.${session.user.id},seller_id.eq.${session.user.id}`)
+        .order('last_message_at', { ascending: false }),
+      supabase.from('blocked_users').select('blocked_id').eq('blocker_id', session.user.id),
+    ]);
+    const blockedIds = new Set((blocked ?? []).map((b) => b.blocked_id));
+    const rows = (data as unknown as ConversationWithDetails[]) ?? [];
+    setConversations(rows.filter((c) => !blockedIds.has(c.buyer_id === session.user.id ? c.seller_id : c.buyer_id)));
     setLoading(false);
   }, [session]);
 

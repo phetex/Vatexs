@@ -72,6 +72,7 @@ function RootNavigator() {
           <Stack.Screen name="promotions" options={{ headerShown: true, title: 'Promotional tools' }} />
           <Stack.Screen name="legal" options={{ headerShown: true, title: 'Legal information' }} />
           <Stack.Screen name="about" options={{ headerShown: true, title: 'About Vatexs' }} />
+          <Stack.Screen name="blocked-users" options={{ headerShown: true, title: 'Blocked users' }} />
         </Stack.Protected>
 
         <Stack.Protected guard={!session}>

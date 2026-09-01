@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme, useThemedStyles, type ThemeMode } from '../src/context/ThemeContext';
 import { supabase } from '../src/lib/supabase';
+import { functionErrorMessage } from '../src/lib/functionError';
 import { radius, spacing } from '../src/theme/colors';
 
 function Row({
@@ -31,6 +32,22 @@ function Row({
         {subtitle ? <Text style={styles.rowSubtitle}>{subtitle}</Text> : null}
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+    </Pressable>
+  );
+}
+
+function DangerRow({ icon, title, onPress, loading }: { icon: keyof typeof Ionicons.glyphMap; title: string; onPress: () => void; loading?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useRowStyles();
+  return (
+    <Pressable style={styles.row} onPress={onPress} disabled={loading}>
+      <View style={[styles.rowIcon, { backgroundColor: colors.danger + '22' }]}>
+        <Ionicons name={icon} size={18} color={colors.danger} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.rowTitle, { color: colors.danger }]}>{title}</Text>
+      </View>
+      {loading ? <ActivityIndicator color={colors.danger} /> : null}
     </Pressable>
   );
 }
@@ -141,9 +158,10 @@ function useRowStyles() {
 
 export default function Settings() {
   const router = useRouter();
-  const { profile, session, refreshProfile } = useAuth();
+  const { profile, session, refreshProfile, signOut } = useAuth();
   const [savingHoliday, setSavingHoliday] = useState(false);
   const [savingAnalytics, setSavingAnalytics] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
@@ -178,6 +196,38 @@ export default function Settings() {
     setSavingAnalytics(true);
     await updateProfile({ analytics_opt_in: value });
     setSavingAnalytics(false);
+  };
+
+  const onDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      "This permanently removes your profile, listings, and messages. It can't be undone.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Are you absolutely sure?', 'This is your last chance to back out.', [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete my account',
+                style: 'destructive',
+                onPress: async () => {
+                  setDeleting(true);
+                  const { data, error } = await supabase.functions.invoke('delete-account');
+                  if (error || data?.error) {
+                    setDeleting(false);
+                    Alert.alert('Could not delete account', await functionErrorMessage(error, data, 'Please try again.'));
+                    return;
+                  }
+                  await signOut();
+                },
+              },
+            ]),
+        },
+      ]
+    );
   };
 
   return (
@@ -227,6 +277,7 @@ export default function Settings() {
             onValueChange={onToggleAnalytics}
             disabled={savingAnalytics}
           />
+          <Row icon="hand-left-outline" title="Blocked users" onPress={() => router.push('/blocked-users')} />
         </View>
 
         <Text style={styles.sectionLabel}>Legal & about</Text>
@@ -239,6 +290,11 @@ export default function Settings() {
         <View style={styles.card}>
           <Row icon="book-outline" title="Your guide to Vatexs" onPress={() => router.push('/guide')} />
           <Row icon="help-buoy-outline" title="Support" onPress={() => router.push('/support')} />
+        </View>
+
+        <Text style={styles.sectionLabel}>Danger zone</Text>
+        <View style={styles.card}>
+          <DangerRow icon="trash-outline" title="Delete account" onPress={onDeleteAccount} loading={deleting} />
         </View>
       </ScrollView>
     </SafeAreaView>
