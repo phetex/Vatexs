@@ -14,6 +14,7 @@ export default function SignUp() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -35,6 +36,10 @@ export default function SignUp() {
     setNotice(null);
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
     setLoading(true);
@@ -74,9 +79,22 @@ export default function SignUp() {
               onChangeText={setPassword}
               placeholder="At least 6 characters"
             />
+            <TextField
+              label="Confirm password"
+              secureTextEntry
+              autoCapitalize="none"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Re-enter your password"
+            />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-            <Button title="Create account" onPress={onSubmit} loading={loading} disabled={!email || !password || !fullName} />
+            <Button
+              title="Create account"
+              onPress={onSubmit}
+              loading={loading}
+              disabled={!email || !password || !fullName || !confirmPassword}
+            />
           </View>
 
           <View style={styles.footer}>
