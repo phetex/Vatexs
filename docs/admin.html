@@ -196,6 +196,8 @@
       <button class="admin-nav-item" data-panel="appointments">Appointments</button>
       <button class="admin-nav-item" data-panel="conversations">Conversations</button>
       <button class="admin-nav-item" data-panel="customers">Customers</button>
+      <button class="admin-nav-item" data-panel="marketing">Marketing</button>
+      <button class="admin-nav-item" data-panel="deals">Deals</button>
     </nav>
     <button class="admin-signout" id="signout-btn">Sign out</button>
   </aside>
@@ -235,6 +237,41 @@
       <h1>Customers</h1>
       <input class="search-input" id="customers-search" placeholder="Search by name...">
       <div id="customers-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-marketing">
+      <h1>Marketing</h1>
+
+      <div class="settings-card" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
+        <h2 style="font-size:16px;margin:0 0 4px;">Push notification</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">Send an announcement to every device with notifications enabled.</p>
+        <div id="broadcast-error" class="login-error"></div>
+        <div class="form-row"><label>Title</label><input id="broadcast-title" placeholder="e.g. Weekend sale is live!"></div>
+        <div class="form-row"><label>Message</label><textarea id="broadcast-body" placeholder="Tell users what's new..."></textarea></div>
+        <button class="btn btn-primary" id="broadcast-send-btn">Send to all users</button>
+      </div>
+
+      <div class="settings-card" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;">
+        <h2 style="font-size:16px;margin:0 0 4px;">Social links</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">Shown wherever Vatexs links to its social profiles.</p>
+        <div class="form-row"><label>X / Twitter</label><input id="social-x" placeholder="https://x.com/vatexs"></div>
+        <div class="form-row"><label>Instagram</label><input id="social-instagram" placeholder="https://instagram.com/vatexs"></div>
+        <div class="form-row"><label>Facebook</label><input id="social-facebook" placeholder="https://facebook.com/vatexs"></div>
+        <div class="form-row"><label>TikTok</label><input id="social-tiktok" placeholder="https://tiktok.com/@vatexs"></div>
+        <button class="btn btn-primary" id="social-save-btn">Save links</button>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="panel-deals">
+      <h1>Deals</h1>
+      <div class="settings-card" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
+        <h2 style="font-size:16px;margin:0 0 4px;">Boost a listing</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">Bumps it to the top of Home and category feeds for 7 days.</p>
+        <input class="search-input" id="deal-search" placeholder="Search listings by title..." style="max-width:100%;">
+        <div id="deal-search-results"></div>
+      </div>
+      <h2 style="font-size:16px;margin-bottom:12px;">Currently boosted</h2>
+      <div id="deals-list"></div>
     </section>
   </main>
 </div>
@@ -379,6 +416,8 @@
     loadAppointments();
     loadConversations();
     loadCustomers();
+    loadSocialLinks();
+    loadDeals();
   }
 
   document.querySelectorAll('.password-toggle').forEach((btn) => {
@@ -897,6 +936,117 @@
   document.getElementById('customers-search').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();
     renderCustomers(q ? allCustomers.filter((c) => (c.full_name || '').toLowerCase().includes(q)) : allCustomers);
+  });
+
+  // ---------- Marketing: push broadcast ----------
+  document.getElementById('broadcast-send-btn').addEventListener('click', async () => {
+    const errEl = document.getElementById('broadcast-error');
+    errEl.textContent = '';
+    const title = document.getElementById('broadcast-title').value.trim();
+    const body = document.getElementById('broadcast-body').value.trim();
+    if (!title || !body) { errEl.textContent = 'Title and message are both required.'; return; }
+    if (!confirm(`Send "${title}" to every user with notifications enabled?`)) return;
+
+    const btn = document.getElementById('broadcast-send-btn');
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Sending…';
+    const { data, error } = await supabase.functions.invoke('send-broadcast', { body: { title, body } });
+    btn.disabled = false;
+    btn.textContent = original;
+    if (error || data?.error) { errEl.textContent = await functionErrorMessage(error, data, 'Could not send broadcast.'); return; }
+    alert(data.sent > 0 ? `Sent to ${data.sent} device(s).` : (data.message || 'Sent.'));
+    document.getElementById('broadcast-title').value = '';
+    document.getElementById('broadcast-body').value = '';
+  });
+
+  // ---------- Marketing: social links ----------
+  const SOCIAL_PLATFORMS = ['x', 'instagram', 'facebook', 'tiktok'];
+
+  async function loadSocialLinks() {
+    const { data } = await supabase.from('social_links').select('*');
+    (data || []).forEach((row) => {
+      const input = document.getElementById(`social-${row.platform}`);
+      if (input) input.value = row.url;
+    });
+  }
+
+  document.getElementById('social-save-btn').addEventListener('click', async () => {
+    const rows = SOCIAL_PLATFORMS.map((platform) => ({
+      platform,
+      url: document.getElementById(`social-${platform}`).value.trim(),
+      updated_at: new Date().toISOString(),
+    })).filter((r) => r.url);
+    if (rows.length === 0) return;
+    const { error } = await supabase.from('social_links').upsert(rows);
+    if (error) { alert('Could not save: ' + error.message); return; }
+    alert('Social links saved.');
+  });
+
+  // ---------- Deals (boosted listings) ----------
+  async function loadDeals() {
+    const { data } = await supabase
+      .from('listings')
+      .select('*, profiles!listings_seller_id_fkey(full_name)')
+      .eq('featured', true)
+      .eq('status', 'active')
+      .gt('featured_until', new Date().toISOString())
+      .order('featured_until', { ascending: true });
+
+    const list = document.getElementById('deals-list');
+    list.innerHTML = '';
+    if (!data || data.length === 0) { list.innerHTML = '<p class="hint">No listings currently boosted.</p>'; return; }
+    data.forEach((l) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.style.cursor = 'default';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
+          <span class="pill in_review">Boosted</span>
+        </div>
+        <div class="list-item-meta">Seller: ${l.profiles?.full_name || '—'} · Expires ${new Date(l.featured_until).toLocaleDateString()}</div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" data-unboost="${l.id}">Remove boost</button></div>
+      `;
+      list.appendChild(el);
+    });
+    list.querySelectorAll('[data-unboost]').forEach((btn) => btn.addEventListener('click', async () => {
+      await supabase.from('listings').update({ featured: false }).eq('id', btn.dataset.unboost);
+      loadDeals();
+    }));
+  }
+
+  document.getElementById('deal-search').addEventListener('input', async (e) => {
+    const q = e.target.value.trim();
+    const box = document.getElementById('deal-search-results');
+    if (!q) { box.innerHTML = ''; return; }
+    const { data } = await supabase
+      .from('listings')
+      .select('id, title, price, currency, featured, profiles!listings_seller_id_fkey(full_name)')
+      .eq('status', 'active')
+      .ilike('title', `%${q}%`)
+      .limit(10);
+    box.innerHTML = '';
+    (data || []).forEach((l) => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      row.style.cursor = 'default';
+      row.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
+          ${l.featured ? '<span class="pill in_review">Already boosted</span>' : `<button class="btn btn-primary btn-sm" data-boost="${l.id}">Boost 7 days</button>`}
+        </div>
+        <div class="list-item-meta">Seller: ${l.profiles?.full_name || '—'}</div>
+      `;
+      box.appendChild(row);
+    });
+    box.querySelectorAll('[data-boost]').forEach((btn) => btn.addEventListener('click', async () => {
+      const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase.from('listings').update({ featured: true, featured_until: until }).eq('id', btn.dataset.boost);
+      document.getElementById('deal-search').value = '';
+      box.innerHTML = '';
+      loadDeals();
+    }));
   });
 
   checkSession();
