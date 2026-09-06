@@ -107,6 +107,27 @@
   }
   .login-error { color: #C0392B; font-size: 13px; margin-bottom: 12px; }
   .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+
+  .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .panel-head h1 { margin: 0; }
+  .day-header { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 20px 0 8px; }
+  .day-header:first-child { margin-top: 0; }
+  .search-input {
+    width: 100%; max-width: 320px; height: 40px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 12px; font-size: 14px; margin-bottom: 16px;
+  }
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; height: 42px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 12px; font-size: 14px; font-family: inherit;
+  }
+  .form-row textarea { height: 70px; padding: 10px 12px; resize: vertical; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .customer-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); }
+  .customer-detail.active { display: block; }
+  .customer-detail .stat-row { display: flex; gap: 20px; margin-top: 8px; }
+  .customer-detail .stat-row b { color: var(--text); font-size: 15px; display: block; }
 </style>
 </head>
 <body>
@@ -172,6 +193,9 @@
       <button class="admin-nav-item active" data-panel="overview">Overview</button>
       <button class="admin-nav-item" data-panel="tickets">Tickets</button>
       <button class="admin-nav-item" data-panel="orders">Orders</button>
+      <button class="admin-nav-item" data-panel="appointments">Appointments</button>
+      <button class="admin-nav-item" data-panel="conversations">Conversations</button>
+      <button class="admin-nav-item" data-panel="customers">Customers</button>
     </nav>
     <button class="admin-signout" id="signout-btn">Sign out</button>
   </aside>
@@ -195,6 +219,22 @@
     <section class="admin-panel" id="panel-orders">
       <h1>Orders</h1>
       <div id="orders-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-appointments">
+      <div class="panel-head"><h1>Appointments</h1><button class="btn btn-primary" id="add-appointment-btn">+ New appointment</button></div>
+      <div id="appointments-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-conversations">
+      <h1>Conversations</h1>
+      <div id="conversations-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-customers">
+      <h1>Customers</h1>
+      <input class="search-input" id="customers-search" placeholder="Search by name...">
+      <div id="customers-list"></div>
     </section>
   </main>
 </div>
@@ -220,6 +260,48 @@
         <button class="btn btn-danger" id="ticket-refund-btn" style="display:none;">Refund order</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="appointment-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="appointment-modal-title">New appointment</h2>
+      <button class="modal-close" id="appointment-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="appointment-form-error" class="login-error"></div>
+      <div class="form-row"><label>Title</label><input id="appointment-title" placeholder="e.g. Seller verification call"></div>
+      <div class="form-row">
+        <label>With user (optional)</label>
+        <input id="appointment-user-search" placeholder="Search by name...">
+        <div id="appointment-user-results" style="max-height:140px;overflow-y:auto;"></div>
+        <div id="appointment-user-selected" class="hint" style="margin-top:6px;"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Date &amp; time</label><input id="appointment-datetime" type="datetime-local"></div>
+        <div class="form-row"><label>Duration (minutes)</label><input id="appointment-duration" type="number" min="5" step="5" value="30"></div>
+      </div>
+      <div class="form-row"><label>Location / link (optional)</label><input id="appointment-location" placeholder="e.g. Google Meet link or address"></div>
+      <div class="form-row"><label>Notes (optional)</label><textarea id="appointment-notes"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="appointment-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="appointment-save-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="conversation-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="conversation-modal-title"></h2>
+        <div class="list-item-meta" id="conversation-modal-meta"></div>
+      </div>
+      <button class="modal-close" id="conversation-modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="conversation-modal-messages"></div>
   </div>
 </div>
 
@@ -294,6 +376,9 @@
     loadOverview();
     loadTickets();
     loadOrders();
+    loadAppointments();
+    loadConversations();
+    loadCustomers();
   }
 
   document.querySelectorAll('.password-toggle').forEach((btn) => {
@@ -550,6 +635,269 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
+
+  // ---------- Appointments ----------
+  let editingAppointmentId = null;
+  let selectedAppointmentUser = null;
+
+  function fmtDateTime(iso) {
+    return new Date(iso).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+  function dayLabel(iso) {
+    const d = new Date(iso);
+    const today = new Date();
+    const diffDays = Math.round((new Date(d.toDateString()) - new Date(today.toDateString())) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: d.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+  }
+
+  async function loadAppointments() {
+    const { data } = await supabase
+      .from('appointments')
+      .select('*, with_user:profiles!appointments_with_user_id_fkey(full_name)')
+      .order('scheduled_at', { ascending: true });
+
+    const list = document.getElementById('appointments-list');
+    list.innerHTML = '';
+    if (!data || data.length === 0) { list.innerHTML = '<p class="hint">No appointments scheduled.</p>'; return; }
+
+    let lastDay = null;
+    data.forEach((a) => {
+      const day = new Date(a.scheduled_at).toDateString();
+      if (day !== lastDay) {
+        lastDay = day;
+        const header = document.createElement('div');
+        header.className = 'day-header';
+        header.textContent = dayLabel(a.scheduled_at);
+        list.appendChild(header);
+      }
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.style.cursor = 'default';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${a.title}</div>
+          <span class="pill ${a.status === 'scheduled' ? 'in_review' : a.status === 'completed' ? 'resolved' : 'cancelled'}">${a.status}</span>
+        </div>
+        <div class="list-item-meta">${fmtDateTime(a.scheduled_at)} · ${a.duration_minutes}m${a.with_user ? ' · With ' + a.with_user.full_name : ''}${a.location ? ' · ' + a.location : ''}</div>
+        ${a.status === 'scheduled' ? `
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" data-edit="${a.id}">Edit</button>
+            <button class="btn btn-outline btn-sm" data-complete="${a.id}">Mark completed</button>
+            <button class="btn btn-danger btn-sm" data-cancel="${a.id}">Cancel</button>
+          </div>` : ''}
+      `;
+      list.appendChild(el);
+    });
+
+    list.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openAppointmentModal(data.find((a) => a.id === btn.dataset.edit))));
+    list.querySelectorAll('[data-complete]').forEach((btn) => btn.addEventListener('click', async () => {
+      await supabase.from('appointments').update({ status: 'completed' }).eq('id', btn.dataset.complete);
+      loadAppointments();
+    }));
+    list.querySelectorAll('[data-cancel]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm('Cancel this appointment?')) return;
+      await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', btn.dataset.cancel);
+      loadAppointments();
+    }));
+  }
+
+  function resetAppointmentForm() {
+    editingAppointmentId = null;
+    selectedAppointmentUser = null;
+    document.getElementById('appointment-title').value = '';
+    document.getElementById('appointment-user-search').value = '';
+    document.getElementById('appointment-user-results').innerHTML = '';
+    document.getElementById('appointment-user-selected').textContent = '';
+    document.getElementById('appointment-datetime').value = '';
+    document.getElementById('appointment-duration').value = 30;
+    document.getElementById('appointment-location').value = '';
+    document.getElementById('appointment-notes').value = '';
+    document.getElementById('appointment-form-error').textContent = '';
+  }
+
+  function openAppointmentModal(appointment) {
+    resetAppointmentForm();
+    document.getElementById('appointment-modal-title').textContent = appointment ? 'Edit appointment' : 'New appointment';
+    if (appointment) {
+      editingAppointmentId = appointment.id;
+      document.getElementById('appointment-title').value = appointment.title;
+      const local = new Date(appointment.scheduled_at.replace(' ', 'T'));
+      local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+      document.getElementById('appointment-datetime').value = local.toISOString().slice(0, 16);
+      document.getElementById('appointment-duration').value = appointment.duration_minutes;
+      document.getElementById('appointment-location').value = appointment.location || '';
+      document.getElementById('appointment-notes').value = appointment.notes || '';
+      if (appointment.with_user) {
+        selectedAppointmentUser = { id: appointment.with_user_id, full_name: appointment.with_user.full_name };
+        document.getElementById('appointment-user-selected').textContent = `Selected: ${appointment.with_user.full_name}`;
+      }
+    }
+    document.getElementById('appointment-modal').classList.add('active');
+  }
+
+  document.getElementById('add-appointment-btn').addEventListener('click', () => openAppointmentModal(null));
+  document.getElementById('appointment-modal-close').addEventListener('click', () => document.getElementById('appointment-modal').classList.remove('active'));
+  document.getElementById('appointment-cancel-btn').addEventListener('click', () => document.getElementById('appointment-modal').classList.remove('active'));
+
+  document.getElementById('appointment-user-search').addEventListener('input', async (e) => {
+    const q = e.target.value.trim();
+    const box = document.getElementById('appointment-user-results');
+    if (!q) { box.innerHTML = ''; return; }
+    const { data } = await supabase.from('profiles').select('id, full_name').ilike('full_name', `%${q}%`).limit(8);
+    box.innerHTML = '';
+    (data || []).forEach((u) => {
+      const row = document.createElement('div');
+      row.className = 'bank-row';
+      row.style.cursor = 'pointer';
+      row.style.padding = '8px 0';
+      row.textContent = u.full_name;
+      row.addEventListener('click', () => {
+        selectedAppointmentUser = u;
+        document.getElementById('appointment-user-selected').textContent = `Selected: ${u.full_name}`;
+        box.innerHTML = '';
+        document.getElementById('appointment-user-search').value = '';
+      });
+      box.appendChild(row);
+    });
+  });
+
+  document.getElementById('appointment-save-btn').addEventListener('click', async () => {
+    const errEl = document.getElementById('appointment-form-error');
+    errEl.textContent = '';
+    const title = document.getElementById('appointment-title').value.trim();
+    const datetimeValue = document.getElementById('appointment-datetime').value;
+    if (!title) { errEl.textContent = 'Title is required.'; return; }
+    if (!datetimeValue) { errEl.textContent = 'Pick a date and time.'; return; }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const payload = {
+      title,
+      with_user_id: selectedAppointmentUser?.id || null,
+      scheduled_at: new Date(datetimeValue).toISOString(),
+      duration_minutes: Number(document.getElementById('appointment-duration').value) || 30,
+      location: document.getElementById('appointment-location').value.trim() || null,
+      notes: document.getElementById('appointment-notes').value.trim() || null,
+    };
+
+    const btn = document.getElementById('appointment-save-btn');
+    btn.disabled = true;
+    let error;
+    if (editingAppointmentId) {
+      ({ error } = await supabase.from('appointments').update(payload).eq('id', editingAppointmentId));
+    } else {
+      ({ error } = await supabase.from('appointments').insert({ ...payload, created_by: session.user.id }));
+    }
+    btn.disabled = false;
+    if (error) { errEl.textContent = error.message; return; }
+    document.getElementById('appointment-modal').classList.remove('active');
+    loadAppointments();
+  });
+
+  // ---------- Conversations ----------
+  async function loadConversations() {
+    const { data } = await supabase
+      .from('conversations')
+      .select('*, listings(title), buyer:profiles!conversations_buyer_id_fkey(full_name), seller:profiles!conversations_seller_id_fkey(full_name), messages(body, created_at)')
+      .order('last_message_at', { ascending: false })
+      .limit(100);
+
+    const list = document.getElementById('conversations-list');
+    list.innerHTML = '';
+    if (!data || data.length === 0) { list.innerHTML = '<p class="hint">No conversations yet.</p>'; return; }
+    data.forEach((c) => {
+      const lastMsg = (c.messages || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${c.buyer?.full_name || 'Buyer'} &amp; ${c.seller?.full_name || 'Seller'}</div>
+          <span class="list-item-meta">${timeAgo(c.last_message_at)}</span>
+        </div>
+        <div class="list-item-meta">${c.listings ? 'Re: ' + c.listings.title : 'No listing attached'}</div>
+        ${lastMsg ? `<div class="list-item-preview">${lastMsg.body}</div>` : ''}
+      `;
+      el.addEventListener('click', () => openConversation(c));
+      list.appendChild(el);
+    });
+  }
+
+  function openConversation(conversation) {
+    document.getElementById('conversation-modal-title').textContent = `${conversation.buyer?.full_name || 'Buyer'} & ${conversation.seller?.full_name || 'Seller'}`;
+    document.getElementById('conversation-modal-meta').textContent = conversation.listings ? 'Re: ' + conversation.listings.title : 'No listing attached';
+    const box = document.getElementById('conversation-modal-messages');
+    box.innerHTML = '';
+    const messages = (conversation.messages || []).slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    if (messages.length === 0) box.innerHTML = '<p class="hint">No messages yet.</p>';
+    messages.forEach((m) => {
+      const div = document.createElement('div');
+      div.className = 'msg-bubble theirs';
+      div.innerHTML = `${m.body}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
+      box.appendChild(div);
+    });
+    document.getElementById('conversation-modal').classList.add('active');
+  }
+
+  document.getElementById('conversation-modal-close').addEventListener('click', () => document.getElementById('conversation-modal').classList.remove('active'));
+
+  // ---------- Customers ----------
+  let allCustomers = [];
+
+  async function loadCustomers() {
+    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    allCustomers = data || [];
+    renderCustomers(allCustomers);
+  }
+
+  function renderCustomers(rows) {
+    const list = document.getElementById('customers-list');
+    list.innerHTML = '';
+    if (rows.length === 0) { list.innerHTML = '<p class="hint">No customers found.</p>'; return; }
+    rows.forEach((c) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${c.full_name || 'Vatexs user'}${c.is_admin ? ' <span class="pill in_review">Admin</span>' : ''}</div>
+          <span class="list-item-meta">Joined ${timeAgo(c.created_at)}</span>
+        </div>
+        <div class="list-item-meta">${c.location || 'No location set'}${c.holiday_mode ? ' · On holiday mode' : ''}</div>
+        <div class="customer-detail" id="customer-detail-${c.id}"></div>
+      `;
+      el.addEventListener('click', () => toggleCustomerDetail(c));
+      list.appendChild(el);
+    });
+  }
+
+  async function toggleCustomerDetail(customer) {
+    const detail = document.getElementById(`customer-detail-${customer.id}`);
+    const willOpen = !detail.classList.contains('active');
+    document.querySelectorAll('.customer-detail.active').forEach((d) => d.classList.remove('active'));
+    if (!willOpen) return;
+    detail.classList.add('active');
+    detail.innerHTML = 'Loading…';
+    const [{ count: listingCount }, { count: purchaseCount }, { count: saleCount }] = await Promise.all([
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', customer.id),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('buyer_id', customer.id),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('seller_id', customer.id),
+    ]);
+    detail.innerHTML = `
+      ${customer.bio ? `<div>${customer.bio}</div>` : ''}
+      ${customer.phone ? `<div>Phone: ${customer.phone}</div>` : ''}
+      <div class="stat-row">
+        <div><b>${listingCount ?? 0}</b>Listings</div>
+        <div><b>${purchaseCount ?? 0}</b>Purchases</div>
+        <div><b>${saleCount ?? 0}</b>Sales</div>
+      </div>
+    `;
+  }
+
+  document.getElementById('customers-search').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    renderCustomers(q ? allCustomers.filter((c) => (c.full_name || '').toLowerCase().includes(q)) : allCustomers);
+  });
 
   checkSession();
 </script>
