@@ -19,9 +19,9 @@ export default function Home() {
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-    brand: { fontSize: 24, fontWeight: '800' as const, color: colors.text, letterSpacing: -0.5 },
-    greeting: { marginTop: 2, fontSize: 14, color: colors.textMuted, marginBottom: spacing.md },
-    chipRow: { marginBottom: spacing.md },
+    brand: { fontSize: 26, fontWeight: '800' as const, color: colors.text, letterSpacing: -0.8 },
+    greeting: { marginTop: 3, fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg },
+    chipRow: { marginBottom: spacing.lg },
     chipRowContent: { paddingHorizontal: spacing.lg },
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
     row: { justifyContent: 'space-between' as const },

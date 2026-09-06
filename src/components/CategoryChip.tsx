@@ -1,4 +1,4 @@
-import { Pressable, Text } from 'react-native';
+import { Platform, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { radius, spacing } from '../theme/colors';
@@ -17,17 +17,24 @@ export function CategoryChip({ label, icon, active, onPress }: CategoryChipProps
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       paddingHorizontal: spacing.md,
-      height: 36,
+      height: 38,
       borderRadius: radius.pill,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
       marginRight: spacing.sm,
     },
-    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+    chipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+      ...Platform.select({
+        ios: { shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+        android: { elevation: 3 },
+      }),
+    },
     icon: { marginRight: 6 },
     label: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted },
-    labelActive: { color: colors.white },
+    labelActive: { color: colors.white, fontWeight: '700' as const },
   }));
 
   return (
