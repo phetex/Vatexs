@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Store — Vatexs</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%235B4EFF%22/><path d=%22M25 20 L50 74 L75 20%22 stroke=%22white%22 stroke-width=%2215%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 fill=%22none%22/></svg>">
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { background: var(--surface); }
+  .store-shell { display: none; min-height: 100vh; grid-template-columns: 220px 1fr; }
+  .store-shell.active { display: grid; }
+
+  .store-sidebar {
+    background: var(--text);
+    color: #fff;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .store-sidebar .brand { color: #fff; margin-bottom: 32px; }
+  .store-sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .store-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; background: none; text-align: left; width: 100%;
+  }
+  .store-nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .store-nav-item.active { background: var(--primary); color: #fff; }
+  .store-signout { color: rgba(255,255,255,0.5); font-size: 13px; background: none; border: none; cursor: pointer; text-align: left; padding: 10px 12px; }
+  .store-signout:hover { color: #fff; }
+
+  .store-main { padding: 32px 40px; max-width: 1100px; }
+  .store-panel { display: none; }
+  .store-panel.active { display: block; }
+  .store-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+  .store-panel h1 { font-size: 24px; font-weight: 800; margin: 0; }
+  .store-sub { color: var(--text-muted); font-size: 14px; margin: 4px 0 0; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
+  .stat-card .num { font-size: 26px; font-weight: 800; }
+  .stat-card .label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .list-item {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+  }
+  .list-thumb { width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface); flex-shrink: 0; }
+  .list-body { flex: 1; min-width: 0; }
+  .list-title { font-weight: 700; font-size: 14px; }
+  .list-meta { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .list-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.active { background: #DEF7E7; color: #1CB566; }
+  .pill.sold { background: var(--surface); color: var(--text-faint); }
+  .pill.hidden { background: #FFE9DE; color: #FF6B4A; }
+  .pill.pending { background: var(--surface); color: var(--text-muted); }
+  .pill.paid { background: var(--primary-light); color: var(--primary); }
+  .pill.released { background: #DEF7E7; color: #1CB566; }
+  .pill.refunded, .pill.cancelled { background: var(--surface); color: var(--text-faint); }
+
+  .btn { padding: 9px 14px; border-radius: var(--radius-md); border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-outline { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+  .btn-danger { background: var(--accent); color: #fff; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .cat-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px; text-align: center; cursor: pointer; transition: box-shadow .15s;
+  }
+  .cat-card:hover { box-shadow: 0 8px 20px -12px rgba(20,20,31,0.2); }
+  .cat-card.active { border-color: var(--primary); background: var(--primary-light); }
+  .cat-card .num { font-size: 20px; font-weight: 800; margin-top: 6px; }
+  .cat-card .label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Modal (product form) */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(20,20,31,0.5);
+    align-items: center; justify-content: center; z-index: 50; padding: 20px; overflow-y: auto;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--bg); border-radius: var(--radius-lg); width: 100%; max-width: 560px;
+    max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; margin: auto;
+  }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { font-size: 17px; margin: 0; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-faint); }
+  .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; height: 42px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 12px; font-size: 14px; font-family: inherit;
+  }
+  .form-row textarea { height: 80px; padding: 10px 12px; resize: vertical; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 14px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--bg);
+    font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-muted);
+  }
+  .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .thumb-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .thumb-wrap { position: relative; width: 64px; height: 64px; }
+  .thumb-wrap img { width: 64px; height: 64px; border-radius: var(--radius-sm); object-fit: cover; }
+  .thumb-remove {
+    position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 10px;
+    background: var(--text); color: #fff; border: none; font-size: 12px; cursor: pointer; line-height: 1;
+  }
+  .add-photo-btn {
+    width: 64px; height: 64px; border-radius: var(--radius-sm); border: 1.5px dashed var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--text-faint);
+    cursor: pointer; background: var(--surface);
+  }
+
+  .settings-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; }
+  .settings-card h3 { margin: 0 0 4px; font-size: 15px; }
+  .settings-card p { margin: 0 0 14px; font-size: 13px; color: var(--text-muted); }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; }
+  .switch { position: relative; width: 44px; height: 26px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border); border-radius: 999px; cursor: pointer; transition: .2s; }
+  .slider:before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  input:checked + .slider { background: var(--primary); }
+  input:checked + .slider:before { transform: translateX(18px); }
+  .bank-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+
+  /* Login */
+  .login-wrap { max-width: 360px; margin: 96px auto; padding: 0 24px; text-align: center; }
+  .login-wrap .logo-mark { margin: 0 auto 20px; }
+  .login-wrap h1 { font-size: 22px; margin: 0 0 8px; }
+  .login-wrap .login-sub { font-size: 13px; color: var(--text-muted); margin: 0 0 24px; }
+  .login-wrap input {
+    width: 100%; height: 46px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 14px; font-size: 15px; margin-bottom: 12px;
+  }
+  .login-error { color: #C0392B; font-size: 13px; margin-bottom: 12px; }
+  .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+  .empty { color: var(--text-faint); font-size: 13px; padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login-view">
+  <span class="logo-mark" style="display:inline-flex;width:48px;height:48px;">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="24" height="24" style="margin:auto;">
+      <path d="M25 20 L50 74 L75 20" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </span>
+  <h1>Your Store</h1>
+  <p class="login-sub">Sign in with your Vatexs account to manage your store.</p>
+  <div id="login-error" class="login-error"></div>
+  <input id="login-email" type="email" placeholder="Email" autocomplete="email">
+  <div style="position:relative;">
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" style="padding-right:44px;">
+    <button type="button" id="login-password-toggle" aria-label="Show password" style="position:absolute;right:10px;top:0;height:46px;background:none;border:none;cursor:pointer;color:var(--text-faint);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+  </div>
+  <button class="btn btn-primary" style="width:100%;height:46px;" id="login-btn">Sign in</button>
+  <p class="hint">
+    Don't have a Vatexs account? Sign up in the mobile app first.
+    <br><a href="reset-password.html">Forgot password?</a>
+  </p>
+</div>
+
+<div class="store-shell" id="store-shell">
+  <aside class="store-sidebar">
+    <span class="brand">
+      <span class="logo-mark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M25 20 L50 74 L75 20" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
+      Your Store
+    </span>
+    <nav>
+      <button class="store-nav-item active" data-panel="overview">Overview</button>
+      <button class="store-nav-item" data-panel="products">Products</button>
+      <button class="store-nav-item" data-panel="categories">Categories</button>
+      <button class="store-nav-item" data-panel="orders">Orders</button>
+      <button class="store-nav-item" data-panel="marketplaces">Marketplaces</button>
+      <button class="store-nav-item" data-panel="settings">Settings</button>
+    </nav>
+    <button class="store-signout" id="signout-btn">Sign out</button>
+  </aside>
+
+  <main class="store-main">
+    <section class="store-panel active" id="panel-overview">
+      <div class="store-panel-head"><div><h1>Overview</h1><p class="store-sub">A snapshot of your store.</p></div></div>
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card"><div class="num">—</div><div class="label">Active products</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Total products</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Pending orders</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Lifetime earned</div></div>
+      </div>
+      <h2 style="font-size:16px;margin-bottom:12px;">Recent orders</h2>
+      <div id="overview-orders"></div>
+    </section>
+
+    <section class="store-panel" id="panel-products">
+      <div class="store-panel-head">
+        <div><h1>Products</h1><p class="store-sub">Everything you've listed for sale.</p></div>
+        <button class="btn btn-primary" id="add-product-btn">+ Add product</button>
+      </div>
+      <div id="products-list"></div>
+    </section>
+
+    <section class="store-panel" id="panel-categories">
+      <div class="store-panel-head"><div><h1>Categories</h1><p class="store-sub">Categories your products can be listed under.</p></div></div>
+      <div class="cat-grid" id="categories-grid"></div>
+    </section>
+
+    <section class="store-panel" id="panel-orders">
+      <div class="store-panel-head"><div><h1>Orders</h1><p class="store-sub">Orders placed on your products. Buyers release payment once they confirm receipt.</p></div></div>
+      <div id="orders-list"></div>
+    </section>
+
+    <section class="store-panel" id="panel-marketplaces">
+      <div class="store-panel-head"><div><h1>Marketplaces</h1><p class="store-sub">Browse what's live across Vatexs right now, by category.</p></div></div>
+      <div class="chip-row" id="marketplace-filters" style="margin-bottom:20px;"></div>
+      <div id="marketplace-list"></div>
+    </section>
+
+    <section class="store-panel" id="panel-settings">
+      <div class="store-panel-head"><div><h1>Settings</h1><p class="store-sub">Manage how your store operates.</p></div></div>
+
+      <div class="settings-card">
+        <div class="toggle-row">
+          <div>
+            <h3>Holiday mode</h3>
+            <p style="margin:0;">Hide your listings from buyers while you're away.</p>
+          </div>
+          <label class="switch"><input type="checkbox" id="holiday-toggle"><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>Payout account</h3>
+        <p id="payout-status">Loading...</p>
+        <div id="payout-form" style="display:none;">
+          <div class="form-row">
+            <label>Search your bank</label>
+            <input id="bank-search" placeholder="e.g. GTBank">
+          </div>
+          <div id="bank-list" style="max-height:220px;overflow-y:auto;"></div>
+          <div id="account-number-row" style="display:none;">
+            <div class="form-row">
+              <label id="selected-bank-label">Account number</label>
+              <input id="account-number" placeholder="10-digit NUBAN account number" maxlength="10">
+            </div>
+            <button class="btn btn-primary" id="verify-bank-btn">Verify & save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="product-modal-title">Add product</h2>
+      <button class="modal-close" id="product-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="product-form-error" class="login-error"></div>
+      <div class="form-row">
+        <label>Photos</label>
+        <div class="thumb-row" id="product-thumbs">
+          <label class="add-photo-btn">+<input type="file" id="product-images-input" accept="image/*" multiple style="display:none;"></label>
+        </div>
+      </div>
+      <div class="form-row"><label>Title</label><input id="product-title" placeholder="e.g. Vintage denim jacket"></div>
+      <div class="form-row"><label>Description</label><textarea id="product-description" placeholder="Describe condition, size, brand..."></textarea></div>
+      <div class="form-grid-2">
+        <div class="form-row"><label>Price</label><input id="product-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-row">
+          <label>Currency</label>
+          <select id="product-currency"></select>
+        </div>
+      </div>
+      <div class="form-row"><label>Location (optional)</label><input id="product-location" placeholder="e.g. Manchester"></div>
+      <div class="form-row">
+        <label>Category</label>
+        <div class="chip-row" id="product-category-chips"></div>
+      </div>
+      <div class="form-row">
+        <label>Condition</label>
+        <div class="chip-row" id="product-condition-chips"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="product-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="product-save-btn">Publish</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+  const supabase = createClient(
+    'https://drldzoczbaqdyxqpehhy.supabase.co',
+    'sb_publishable_z1jbabZtNrsJgoJTwjGXSw_FETajRuV'
+  );
+
+  const CONDITIONS = [
+    { value: 'new', label: 'New' },
+    { value: 'like_new', label: 'Like new' },
+    { value: 'used', label: 'Used' },
+    { value: 'fair', label: 'Fair' },
+  ];
+  const CURRENCIES = [
+    { code: 'GBP', symbol: '£' }, { code: 'USD', symbol: '$' }, { code: 'EUR', symbol: '€' },
+    { code: 'NGN', symbol: '₦' }, { code: 'CAD', symbol: 'CA$' }, { code: 'AUD', symbol: 'A$' },
+    { code: 'INR', symbol: '₹' }, { code: 'ZAR', symbol: 'R' }, { code: 'GHS', symbol: 'GH₵' }, { code: 'KES', symbol: 'KSh' },
+  ];
+  const CURRENCY_SYMBOL = Object.fromEntries(CURRENCIES.map((c) => [c.code, c.symbol]));
+
+  let currentUserId = null;
+  let categories = [];
+  let editingProductId = null;
+  let productImages = []; // { file, url } for new uploads, or { existingUrl } for already-saved
+  let selectedCategoryId = null;
+  let selectedCondition = 'used';
+  let selectedCurrency = 'GBP';
+  let selectedBank = null;
+  let banks = [];
+  let marketplaceFilter = null;
+
+  function fmtMoney(amount, currency) {
+    const symbol = CURRENCY_SYMBOL[currency] || currency + ' ';
+    return `${symbol}${Number(amount).toLocaleString()}`;
+  }
+  function timeAgo(iso) {
+    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+  async function functionErrorMessage(error, data, fallback) {
+    if (data?.error) return data.error;
+    if (error?.context?.json) {
+      try { const body = await error.context.json(); if (body?.error) return body.error; } catch {}
+    }
+    return error?.message || fallback;
+  }
+
+  // ---------- Auth ----------
+  async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return showLogin();
+    currentUserId = session.user.id;
+    showStore();
+  }
+
+  function showLogin() {
+    document.getElementById('login-view').style.display = 'block';
+    document.getElementById('store-shell').classList.remove('active');
+  }
+
+  async function showStore() {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('store-shell').classList.add('active');
+    await loadCategories();
+    loadOverview();
+    loadProducts();
+    loadOrders();
+    loadMarketplaces();
+    loadSettings();
+  }
+
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('login-error');
+    errEl.textContent = '';
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent = error.message; return; }
+    checkSession();
+  });
+
+  document.getElementById('login-password-toggle').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const input = document.getElementById('login-password');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.style.color = showing ? 'var(--text-faint)' : 'var(--primary)';
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    showLogin();
+  });
+
+  // ---------- Nav ----------
+  document.querySelectorAll('.store-nav-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.store-nav-item').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.store-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    });
+  });
+
+  // ---------- Categories (shared reference) ----------
+  async function loadCategories() {
+    const { data } = await supabase.from('categories').select('*').order('id');
+    categories = data || [];
+
+    const grid = document.getElementById('categories-grid');
+    grid.innerHTML = '';
+    categories.forEach((c) => {
+      const el = document.createElement('div');
+      el.className = 'cat-card';
+      el.innerHTML = `<div style="font-size:22px;">🏷️</div><div class="label">${c.name}</div>`;
+      grid.appendChild(el);
+    });
+
+    const chips = document.getElementById('product-category-chips');
+    chips.innerHTML = '';
+    categories.forEach((c) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = c.name;
+      chip.addEventListener('click', () => { selectedCategoryId = c.id; renderCategoryChips(); });
+      chip.dataset.id = c.id;
+      chips.appendChild(chip);
+    });
+
+    const condChips = document.getElementById('product-condition-chips');
+    condChips.innerHTML = '';
+    CONDITIONS.forEach((c) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip';
+      chip.textContent = c.label;
+      chip.addEventListener('click', () => { selectedCondition = c.value; renderConditionChips(); });
+      chip.dataset.value = c.value;
+      condChips.appendChild(chip);
+    });
+
+    const currencySelect = document.getElementById('product-currency');
+    currencySelect.innerHTML = CURRENCIES.map((c) => `<option value="${c.code}">${c.symbol} ${c.code}</option>`).join('');
+
+    const marketFilters = document.getElementById('marketplace-filters');
+    marketFilters.innerHTML = '';
+    const allChip = document.createElement('button');
+    allChip.type = 'button';
+    allChip.className = 'chip' + (marketplaceFilter === null ? ' active' : '');
+    allChip.textContent = 'All';
+    allChip.addEventListener('click', () => { marketplaceFilter = null; loadMarketplaces(); });
+    marketFilters.appendChild(allChip);
+    categories.forEach((c) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'chip' + (marketplaceFilter === c.id ? ' active' : '');
+      chip.textContent = c.name;
+      chip.addEventListener('click', () => { marketplaceFilter = c.id; loadMarketplaces(); });
+      marketFilters.appendChild(chip);
+    });
+  }
+
+  function renderCategoryChips() {
+    document.querySelectorAll('#product-category-chips .chip').forEach((chip) => {
+      chip.classList.toggle('active', Number(chip.dataset.id) === selectedCategoryId);
+    });
+  }
+  function renderConditionChips() {
+    document.querySelectorAll('#product-condition-chips .chip').forEach((chip) => {
+      chip.classList.toggle('active', chip.dataset.value === selectedCondition);
+    });
+  }
+
+  // ---------- Overview ----------
+  async function loadOverview() {
+    const [{ data: active }, { data: all }, { data: pending }, { data: released }] = await Promise.all([
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', currentUserId).eq('status', 'active'),
+      supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', currentUserId),
+      supabase.from('orders').select('id', { count: 'exact', head: true }).eq('seller_id', currentUserId).eq('status', 'paid'),
+      supabase.from('orders').select('payout_amount, currency').eq('seller_id', currentUserId).eq('status', 'released'),
+    ]);
+    const totalsByCurrency = {};
+    (released || []).forEach((o) => { totalsByCurrency[o.currency] = (totalsByCurrency[o.currency] || 0) + Number(o.payout_amount); });
+    const earnedText = Object.entries(totalsByCurrency).map(([cur, amt]) => fmtMoney(amt, cur)).join(', ') || fmtMoney(0, 'GBP');
+
+    const cards = document.querySelectorAll('#stat-grid .stat-card .num');
+    cards[0].textContent = active?.count ?? active?.length ?? 0;
+    cards[1].textContent = all?.count ?? all?.length ?? 0;
+    cards[2].textContent = pending?.count ?? pending?.length ?? 0;
+    cards[3].textContent = earnedText;
+
+    const { data: recentOrders } = await supabase
+      .from('orders')
+      .select('*, listings(title), buyer:profiles!orders_buyer_id_fkey(full_name)')
+      .eq('seller_id', currentUserId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    const box = document.getElementById('overview-orders');
+    box.innerHTML = '';
+    if (!recentOrders || recentOrders.length === 0) { box.innerHTML = '<div class="empty">No orders yet.</div>'; return; }
+    recentOrders.forEach((o) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        <div class="list-body">
+          <div class="list-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
+          <div class="list-meta">Buyer: ${o.buyer?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
+        </div>
+        <span class="pill ${o.status}">${o.status}</span>
+      `;
+      box.appendChild(el);
+    });
+  }
+
+  // ---------- Products ----------
+  async function loadProducts() {
+    const { data } = await supabase
+      .from('listings')
+      .select('*, listing_images(id, url, position), categories(name)')
+      .eq('seller_id', currentUserId)
+      .order('created_at', { ascending: false });
+
+    const list = document.getElementById('products-list');
+    list.innerHTML = '';
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No products yet — click "Add product" to list your first item.</div>'; return; }
+    data.forEach((p) => {
+      const img = (p.listing_images || []).sort((a, b) => a.position - b.position)[0]?.url;
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        ${img ? `<img class="list-thumb" src="${img}">` : `<div class="list-thumb"></div>`}
+        <div class="list-body">
+          <div class="list-title">${p.title} — ${fmtMoney(p.price, p.currency)}</div>
+          <div class="list-meta">${p.categories?.name || ''} ${p.location ? '· ' + p.location : ''}</div>
+        </div>
+        <span class="pill ${p.status}">${p.status}</span>
+        <div class="list-actions">
+          <button class="btn btn-outline btn-sm" data-edit="${p.id}">Edit</button>
+          ${p.status !== 'sold' ? `<button class="btn btn-outline btn-sm" data-sold="${p.id}">Mark sold</button>` : ''}
+          <button class="btn btn-danger btn-sm" data-delete="${p.id}">Delete</button>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+
+    list.querySelectorAll('[data-edit]').forEach((btn) => btn.addEventListener('click', () => openProductModal(data.find((p) => p.id === btn.dataset.edit))));
+    list.querySelectorAll('[data-sold]').forEach((btn) => btn.addEventListener('click', async () => {
+      await supabase.from('listings').update({ status: 'sold' }).eq('id', btn.dataset.sold);
+      loadProducts();
+    }));
+    list.querySelectorAll('[data-delete]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (!confirm('Delete this product? This cannot be undone.')) return;
+      const { error } = await supabase.from('listings').delete().eq('id', btn.dataset.delete);
+      if (error) { alert('Could not delete: ' + error.message + ' (items with existing orders cannot be deleted)'); return; }
+      loadProducts();
+    }));
+  }
+
+  function resetProductForm() {
+    editingProductId = null;
+    productImages = [];
+    selectedCategoryId = null;
+    selectedCondition = 'used';
+    selectedCurrency = 'GBP';
+    document.getElementById('product-title').value = '';
+    document.getElementById('product-description').value = '';
+    document.getElementById('product-price').value = '';
+    document.getElementById('product-currency').value = 'GBP';
+    document.getElementById('product-location').value = '';
+    document.getElementById('product-form-error').textContent = '';
+    renderCategoryChips();
+    renderConditionChips();
+    renderThumbs();
+  }
+
+  function openProductModal(product) {
+    resetProductForm();
+    document.getElementById('product-modal-title').textContent = product ? 'Edit product' : 'Add product';
+    document.getElementById('product-save-btn').textContent = product ? 'Save changes' : 'Publish';
+    if (product) {
+      editingProductId = product.id;
+      document.getElementById('product-title').value = product.title;
+      document.getElementById('product-description').value = product.description || '';
+      document.getElementById('product-price').value = product.price;
+      document.getElementById('product-currency').value = product.currency;
+      document.getElementById('product-location').value = product.location || '';
+      selectedCategoryId = product.category_id;
+      selectedCondition = product.condition;
+      productImages = (product.listing_images || []).sort((a, b) => a.position - b.position).map((img) => ({ existingUrl: img.url, id: img.id }));
+      renderCategoryChips();
+      renderConditionChips();
+      renderThumbs();
+    }
+    document.getElementById('product-modal').classList.add('active');
+  }
+
+  function renderThumbs() {
+    const row = document.getElementById('product-thumbs');
+    row.innerHTML = '';
+    productImages.forEach((img, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb-wrap';
+      const src = img.existingUrl || img.previewUrl;
+      wrap.innerHTML = `<img src="${src}"><button type="button" class="thumb-remove">&times;</button>`;
+      wrap.querySelector('.thumb-remove').addEventListener('click', () => { productImages.splice(i, 1); renderThumbs(); });
+      row.appendChild(wrap);
+    });
+    if (productImages.length < 6) {
+      const label = document.createElement('label');
+      label.className = 'add-photo-btn';
+      label.textContent = '+';
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.style.display = 'none';
+      input.addEventListener('change', (e) => {
+        Array.from(e.target.files).slice(0, 6 - productImages.length).forEach((file) => {
+          productImages.push({ file, previewUrl: URL.createObjectURL(file) });
+        });
+        renderThumbs();
+      });
+      label.appendChild(input);
+      row.appendChild(label);
+    }
+  }
+
+  document.getElementById('add-product-btn').addEventListener('click', () => openProductModal(null));
+  document.getElementById('product-modal-close').addEventListener('click', () => document.getElementById('product-modal').classList.remove('active'));
+  document.getElementById('product-cancel-btn').addEventListener('click', () => document.getElementById('product-modal').classList.remove('active'));
+
+  document.getElementById('product-save-btn').addEventListener('click', async () => {
+    const errEl = document.getElementById('product-form-error');
+    errEl.textContent = '';
+    const title = document.getElementById('product-title').value.trim();
+    const priceValue = Number(document.getElementById('product-price').value);
+    const currency = document.getElementById('product-currency').value;
+    const description = document.getElementById('product-description').value.trim();
+    const location = document.getElementById('product-location').value.trim();
+
+    if (!title) { errEl.textContent = 'Title is required.'; return; }
+    if (!priceValue && priceValue !== 0) { errEl.textContent = 'Enter a valid price.'; return; }
+    if (!selectedCategoryId) { errEl.textContent = 'Pick a category.'; return; }
+
+    const btn = document.getElementById('product-save-btn');
+    btn.disabled = true;
+    try {
+      let listingId = editingProductId;
+      const payload = { title, description, price: priceValue, currency, location: location || null, category_id: selectedCategoryId, condition: selectedCondition };
+
+      if (editingProductId) {
+        const { error } = await supabase.from('listings').update(payload).eq('id', editingProductId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from('listings').insert({ ...payload, seller_id: currentUserId }).select().single();
+        if (error) throw error;
+        listingId = data.id;
+      }
+
+      // Upload any newly-added files
+      const newImages = productImages.filter((img) => img.file);
+      const uploaded = await Promise.all(newImages.map(async (img) => {
+        const ext = img.file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error } = await supabase.storage.from('listing-images').upload(path, img.file, { contentType: img.file.type || `image/${ext}` });
+        if (error) throw error;
+        const { data } = supabase.storage.from('listing-images').getPublicUrl(path);
+        return data.publicUrl;
+      }));
+
+      if (uploaded.length) {
+        const existingCount = productImages.filter((img) => img.existingUrl).length;
+        const rows = uploaded.map((url, i) => ({ listing_id: listingId, url, position: existingCount + i }));
+        const { error } = await supabase.from('listing_images').insert(rows);
+        if (error) throw error;
+      }
+
+      // Remove any existing images the seller deleted from the form
+      if (editingProductId) {
+        const keptIds = productImages.filter((img) => img.id).map((img) => img.id);
+        await supabase.from('listing_images').delete().eq('listing_id', editingProductId).not('id', 'in', `(${keptIds.length ? keptIds.join(',') : '00000000-0000-0000-0000-000000000000'})`);
+      }
+
+      document.getElementById('product-modal').classList.remove('active');
+      loadProducts();
+      loadOverview();
+    } catch (err) {
+      errEl.textContent = err.message || 'Could not save product.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------- Orders ----------
+  async function loadOrders() {
+    const { data } = await supabase
+      .from('orders')
+      .select('*, listings(title), buyer:profiles!orders_buyer_id_fkey(full_name)')
+      .eq('seller_id', currentUserId)
+      .order('created_at', { ascending: false });
+
+    const list = document.getElementById('orders-list');
+    list.innerHTML = '';
+    if (!data || data.length === 0) { list.innerHTML = '<div class="empty">No orders yet.</div>'; return; }
+    data.forEach((o) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        <div class="list-body">
+          <div class="list-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
+          <div class="list-meta">Buyer: ${o.buyer?.full_name || '—'} · Payout: ${fmtMoney(o.payout_amount, o.currency)} · ${timeAgo(o.created_at)}</div>
+        </div>
+        <span class="pill ${o.status}">${o.status}</span>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- Marketplaces (live browse) ----------
+  async function loadMarketplaces() {
+    let query = supabase
+      .from('listings')
+      .select('*, listing_images(url, position), categories(name), profiles!listings_seller_id_fkey(full_name, holiday_mode)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(60);
+    if (marketplaceFilter) query = query.eq('category_id', marketplaceFilter);
+    const { data } = await query;
+    const rows = (data || []).filter((l) => !l.profiles?.holiday_mode);
+
+    document.querySelectorAll('#marketplace-filters .chip').forEach((chip, i) => {
+      const isAll = i === 0;
+      chip.classList.toggle('active', isAll ? marketplaceFilter === null : Number(categories[i - 1]?.id) === marketplaceFilter);
+    });
+
+    const list = document.getElementById('marketplace-list');
+    list.innerHTML = '';
+    if (rows.length === 0) { list.innerHTML = '<div class="empty">No active listings in this category yet.</div>'; return; }
+    rows.forEach((l) => {
+      const img = (l.listing_images || []).sort((a, b) => a.position - b.position)[0]?.url;
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.innerHTML = `
+        ${img ? `<img class="list-thumb" src="${img}">` : `<div class="list-thumb"></div>`}
+        <div class="list-body">
+          <div class="list-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
+          <div class="list-meta">${l.categories?.name || ''} · Seller: ${l.profiles?.full_name || 'Vatexs user'} · ${timeAgo(l.created_at)}</div>
+        </div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- Settings ----------
+  async function loadSettings() {
+    const { data: profile } = await supabase.from('profiles').select('holiday_mode').eq('id', currentUserId).single();
+    const toggle = document.getElementById('holiday-toggle');
+    toggle.checked = !!profile?.holiday_mode;
+    toggle.onchange = async () => {
+      await supabase.from('profiles').update({ holiday_mode: toggle.checked }).eq('id', currentUserId);
+    };
+
+    const { data: payoutAccount } = await supabase.from('seller_payout_accounts').select('*').eq('seller_id', currentUserId).maybeSingle();
+    const statusEl = document.getElementById('payout-status');
+    const formEl = document.getElementById('payout-form');
+    if (payoutAccount) {
+      statusEl.innerHTML = `✅ ${payoutAccount.bank_name} •••• ${payoutAccount.account_number_last4} (${payoutAccount.account_name})`;
+    } else {
+      statusEl.textContent = 'No payout account yet — add one so buyers can release payments to you.';
+    }
+    formEl.style.display = 'block';
+
+    const { data: banksData } = await supabase.functions.invoke('list-banks');
+    banks = banksData?.banks || [];
+    renderBankList(banks);
+  }
+
+  function renderBankList(list) {
+    const box = document.getElementById('bank-list');
+    box.innerHTML = '';
+    list.slice(0, 30).forEach((b) => {
+      const row = document.createElement('div');
+      row.className = 'bank-row';
+      row.textContent = b.name;
+      row.addEventListener('click', () => {
+        selectedBank = b;
+        document.getElementById('selected-bank-label').textContent = `Account number (${b.name})`;
+        document.getElementById('account-number-row').style.display = 'block';
+      });
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('bank-search').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    renderBankList(q ? banks.filter((b) => b.name.toLowerCase().includes(q)) : banks);
+  });
+
+  document.getElementById('verify-bank-btn').addEventListener('click', async () => {
+    const accountNumber = document.getElementById('account-number').value.trim();
+    if (!selectedBank || accountNumber.length < 10) return;
+    const btn = document.getElementById('verify-bank-btn');
+    btn.disabled = true;
+    const { data, error } = await supabase.functions.invoke('onboard-seller-bank', {
+      body: { account_number: accountNumber, bank_code: selectedBank.code, bank_name: selectedBank.name },
+    });
+    btn.disabled = false;
+    if (error || data?.error) {
+      alert('Could not verify account: ' + (await functionErrorMessage(error, data, 'Please check the details and try again.')));
+      return;
+    }
+    alert(`Payout account saved: ${data.account_name}`);
+    loadSettings();
+  });
+
+  checkSession();
+</script>
+
+</body>
+</html>
