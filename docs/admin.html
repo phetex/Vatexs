@@ -98,6 +98,13 @@
     width: 100%; height: 46px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
     padding: 0 14px; font-size: 15px; margin-bottom: 12px;
   }
+  .password-field { position: relative; }
+  .password-field input { padding-right: 44px; }
+  .password-toggle {
+    position: absolute; right: 12px; top: 0; height: 46px; margin-bottom: 12px;
+    display: flex; align-items: center; background: none; border: none; cursor: pointer;
+    color: var(--text-faint); padding: 0;
+  }
   .login-error { color: #C0392B; font-size: 13px; margin-bottom: 12px; }
   .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
 </style>
@@ -115,7 +122,12 @@
   <div id="auth-signin">
     <div id="login-error" class="login-error"></div>
     <input id="login-email" type="email" placeholder="Email" autocomplete="email">
-    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+    <div class="password-field">
+      <input id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="password-toggle" data-target="login-password" aria-label="Show password">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <button class="btn btn-primary" style="width:100%;" id="login-btn">Sign in</button>
     <p class="hint">
       Admin access only.
@@ -128,7 +140,12 @@
     <div id="signup-error" class="login-error"></div>
     <input id="signup-name" type="text" placeholder="Full name" autocomplete="name">
     <input id="signup-email" type="email" placeholder="Email" autocomplete="email">
-    <input id="signup-password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password">
+    <div class="password-field">
+      <input id="signup-password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password">
+      <button type="button" class="password-toggle" data-target="signup-password" aria-label="Show password">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <button class="btn btn-primary" style="width:100%;" id="signup-btn">Create account</button>
     <p class="hint">
       Creating an account here does not grant admin access on its own — an existing admin needs to flag your account.
@@ -278,6 +295,16 @@
     loadTickets();
     loadOrders();
   }
+
+  document.querySelectorAll('.password-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      btn.style.color = showing ? 'var(--text-faint)' : 'var(--primary)';
+    });
+  });
 
   document.getElementById('login-btn').addEventListener('click', async () => {
     const email = document.getElementById('login-email').value.trim();
