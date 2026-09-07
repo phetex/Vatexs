@@ -1,6 +1,14 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 
+async function log(supabaseAdmin: any, stage: string, message: string) {
+  try {
+    await supabaseAdmin.from('push_debug_log').insert({ platform: 'assistant-chat', stage, message: message.slice(0, 4000) });
+  } catch {
+    // best-effort diagnostics only
+  }
+}
+
 const SYSTEM_PROMPT = `You are the Vatexs virtual assistant, embedded on the Vatexs website and dashboards.
 
 Vatexs is a peer-to-peer marketplace app (iOS, Android, and web) for buying and selling fashion, tech, home goods, vehicles, and more.
@@ -22,13 +30,14 @@ Guidelines:
 - You do not have access to any specific user's account, orders, or listings — if someone asks about their own specific order/account, direct them to sign in and use Support, or email support@vatexs.store.
 - Never give financial, investment, tax, or legal advice. You can describe how Vatexs's own fees/escrow work, nothing more.
 - If asked something unrelated to Vatexs, politely decline and steer back to how you can help with Vatexs.
-- Never ask for or accept passwords, card numbers, or other sensitive credentials in this chat.`;
+- Never ask for or accept passwords, card numbers, or other sensitive credentials in this chat.
+- This chat widget only displays plain text — never use markdown (no #, **, -, or numbered lists). Write in short plain sentences and paragraphs instead.`;
 
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 2000;
 
 export default {
-  fetch: withSupabase({ auth: 'none' }, async (req) => {
+  fetch: withSupabase({ auth: 'none' }, async (req, ctx) => {
     if (req.method !== 'POST') {
       return Response.json({ error: 'Method not allowed' }, { status: 405 });
     }
@@ -69,7 +78,7 @@ export default {
 
       if (!res.ok) {
         const errText = await res.text();
-        console.error('Anthropic API error', res.status, errText);
+        await log(ctx.supabaseAdmin, 'anthropic-error', `status=${res.status} body=${errText}`);
         return Response.json({ error: 'The assistant is temporarily unavailable. Please try again shortly.' }, { status: 502 });
       }
 
@@ -77,7 +86,7 @@ export default {
       const reply = data.content?.[0]?.text ?? "Sorry, I couldn't come up with a reply. Please try again.";
       return Response.json({ reply });
     } catch (err) {
-      console.error('assistant-chat error', err);
+      await log(ctx.supabaseAdmin, 'exception', `${(err as Error).message}\n${(err as Error).stack ?? ''}`);
       return Response.json({ error: 'The assistant is temporarily unavailable. Please try again shortly.' }, { status: 502 });
     }
   }),
