@@ -462,3 +462,6 @@ verify_jwt = true
 
 [functions.send-broadcast]
 verify_jwt = true
+
+[functions.assistant-chat]
+verify_jwt = false

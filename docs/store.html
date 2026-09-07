@@ -823,5 +823,132 @@
   checkSession();
 </script>
 
+<!-- Vatexs Assistant -->
+<style>
+  #vx-assistant-toggle {
+    position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%;
+    background: var(--primary); color: #fff; border: none; cursor: pointer; z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 24px -8px rgba(91,78,255,0.55);
+  }
+  #vx-assistant-panel {
+    position: fixed; bottom: 90px; right: 20px; width: 340px; max-width: calc(100vw - 32px);
+    height: 460px; max-height: calc(100vh - 120px); background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: 0 24px 48px -16px rgba(20,20,31,0.35);
+    display: none; flex-direction: column; overflow: hidden; z-index: 999;
+  }
+  #vx-assistant-panel.active { display: flex; }
+  #vx-assistant-header {
+    background: var(--primary); color: #fff; padding: 14px 16px; font-weight: 700; font-size: 14px;
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+  }
+  #vx-assistant-close { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; line-height: 1; opacity: 0.85; }
+  #vx-assistant-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .vx-msg { max-width: 85%; padding: 9px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
+  .vx-msg.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+  .vx-msg.assistant { align-self: flex-start; background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; }
+  .vx-msg.typing { align-self: flex-start; background: var(--surface); color: var(--text-faint); font-style: italic; }
+  #vx-assistant-input-row { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+  #vx-assistant-input {
+    flex: 1; height: 40px; border-radius: var(--radius-md); border: 1.5px solid var(--border);
+    padding: 0 12px; font-size: 13px; font-family: inherit;
+  }
+  #vx-assistant-send {
+    height: 40px; padding: 0 14px; border-radius: var(--radius-md); border: none;
+    background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  #vx-assistant-send:disabled { opacity: 0.5; cursor: default; }
+</style>
+
+<button id="vx-assistant-toggle" aria-label="Chat with the Vatexs assistant">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+</button>
+
+<div id="vx-assistant-panel">
+  <div id="vx-assistant-header">
+    <span>Vatexs Assistant</span>
+    <button id="vx-assistant-close" aria-label="Close chat">&times;</button>
+  </div>
+  <div id="vx-assistant-messages"></div>
+  <div id="vx-assistant-input-row">
+    <input id="vx-assistant-input" placeholder="Ask about Vatexs...">
+    <button id="vx-assistant-send">Send</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  var history = [];
+  var messagesEl, panelEl, toggleEl, closeEl, inputEl, sendEl;
+
+  function addMessage(role, text) {
+    var div = document.createElement('div');
+    div.className = 'vx-msg ' + role;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function greet() {
+    if (messagesEl.children.length === 0) {
+      addMessage('assistant', "Hi! I'm the Vatexs assistant. Ask me anything about buying, selling, escrow, fees, or how the app works.");
+    }
+  }
+
+  async function send() {
+    var text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+    sendEl.disabled = true;
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+    var typingEl = addMessage('typing', 'Typing…');
+
+    try {
+      var res = await fetch('https://drldzoczbaqdyxqpehhy.supabase.co/functions/v1/assistant-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: 'sb_publishable_z1jbabZtNrsJgoJTwjGXSw_FETajRuV',
+          Authorization: 'Bearer sb_publishable_z1jbabZtNrsJgoJTwjGXSw_FETajRuV',
+        },
+        body: JSON.stringify({ messages: history }),
+      });
+      var data = await res.json();
+      typingEl.remove();
+      if (!res.ok || data.error) {
+        addMessage('assistant', data.error || "Sorry, something went wrong. Please try again.");
+        return;
+      }
+      addMessage('assistant', data.reply);
+      history.push({ role: 'assistant', content: data.reply });
+    } catch (err) {
+      typingEl.remove();
+      addMessage('assistant', "Sorry, I couldn't connect. Please try again in a moment.");
+    } finally {
+      sendEl.disabled = false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    messagesEl = document.getElementById('vx-assistant-messages');
+    panelEl = document.getElementById('vx-assistant-panel');
+    toggleEl = document.getElementById('vx-assistant-toggle');
+    closeEl = document.getElementById('vx-assistant-close');
+    inputEl = document.getElementById('vx-assistant-input');
+    sendEl = document.getElementById('vx-assistant-send');
+
+    toggleEl.addEventListener('click', function () {
+      panelEl.classList.toggle('active');
+      if (panelEl.classList.contains('active')) { greet(); inputEl.focus(); }
+    });
+    closeEl.addEventListener('click', function () { panelEl.classList.remove('active'); });
+    sendEl.addEventListener('click', send);
+    inputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+  });
+})();
+</script>
+
 </body>
 </html>
