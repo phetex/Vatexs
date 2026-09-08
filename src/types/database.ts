@@ -8,6 +8,7 @@ export interface Profile {
   phone: string | null;
   location: string | null;
   bio: string | null;
+  country_code: string | null;
   is_admin: boolean;
   holiday_mode: boolean;
   interested_categories: number[];

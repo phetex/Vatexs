@@ -14,6 +14,8 @@ import { findOrCreateConversation } from '../../src/hooks/useConversations';
 import { supabase } from '../../src/lib/supabase';
 import { functionErrorMessage } from '../../src/lib/functionError';
 import { formatPrice, timeAgo } from '../../src/lib/format';
+import { useExchangeRates } from '../../src/hooks/useExchangeRates';
+import { currencyForCountry } from '../../src/lib/countries';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 import type { ListingWithDetails } from '../../src/types/database';
@@ -30,13 +32,16 @@ const CONDITION_LABEL: Record<string, string> = {
 export default function ListingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const router = useRouter();
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
   const { isFavorite, toggle } = useFavorite(id);
+  const { convert } = useExchangeRates();
+  const viewerCurrency = currencyForCountry(profile?.country_code);
+  const converted = listing && viewerCurrency && viewerCurrency !== listing.currency ? convert(listing.price, listing.currency, viewerCurrency) : null;
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
@@ -52,6 +57,7 @@ export default function ListingDetail() {
     metaPillText: { color: colors.primary, fontSize: 12, fontWeight: '700' as const },
     metaItem: { flexDirection: 'row' as const, alignItems: 'center' as const },
     metaText: { color: colors.textMuted, fontSize: 12, marginLeft: 4 },
+    estimate: { fontSize: 13, color: colors.textFaint, marginTop: 2 },
     section: { marginTop: spacing.lg },
     sectionTitle: { fontSize: 14, fontWeight: '700' as const, color: colors.text, marginBottom: spacing.sm },
     description: { fontSize: 14, color: colors.textMuted, lineHeight: 21 },
@@ -171,6 +177,7 @@ export default function ListingDetail() {
           <View style={styles.titleRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.price}>{formatPrice(listing.price, listing.currency)}</Text>
+              {converted != null ? <Text style={styles.estimate}>≈ {formatPrice(converted, viewerCurrency!)} estimate</Text> : null}
               <Text style={styles.title}>{listing.title}</Text>
             </View>
             {!isOwner ? (

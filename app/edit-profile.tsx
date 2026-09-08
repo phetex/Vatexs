@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
+import { CountryPicker } from '../src/components/CountryPicker';
 import { useAuth } from '../src/context/AuthContext';
 import { supabase } from '../src/lib/supabase';
 import { useThemedStyles } from '../src/context/ThemeContext';
@@ -16,6 +17,7 @@ export default function EditProfile() {
   const [location, setLocation] = useState(profile?.location ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
+  const [countryCode, setCountryCode] = useState<string | null>(profile?.country_code ?? null);
   const [saving, setSaving] = useState(false);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
@@ -29,7 +31,13 @@ export default function EditProfile() {
     setSaving(true);
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName.trim(), location: location.trim() || null, phone: phone.trim() || null, bio: bio.trim() || null })
+      .update({
+        full_name: fullName.trim(),
+        location: location.trim() || null,
+        phone: phone.trim() || null,
+        bio: bio.trim() || null,
+        country_code: countryCode,
+      })
       .eq('id', session.user.id);
     setSaving(false);
     if (error) {
@@ -48,6 +56,7 @@ export default function EditProfile() {
           <TextField label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Manchester" />
           <TextField label="Phone (optional)" value={phone} onChangeText={setPhone} placeholder="Shown only to buyers you message" keyboardType="phone-pad" />
           <TextField label="Bio" value={bio} onChangeText={setBio} placeholder="Tell buyers a bit about you" multiline numberOfLines={3} style={styles.textArea} />
+          <CountryPicker value={countryCode} onChange={setCountryCode} />
           <Button title="Save changes" onPress={onSave} loading={saving} style={styles.save} />
         </ScrollView>
       </KeyboardAvoidingView>

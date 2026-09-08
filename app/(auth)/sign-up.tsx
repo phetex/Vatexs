@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
+import { CountryPicker } from '../../src/components/CountryPicker';
 import { useAuth } from '../../src/context/AuthContext';
 import { useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
@@ -15,6 +16,7 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [countryCode, setCountryCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export default function SignUp() {
       return;
     }
     setLoading(true);
-    const { error: signUpError } = await signUp(email.trim(), password, fullName.trim());
+    const { error: signUpError } = await signUp(email.trim(), password, fullName.trim(), countryCode);
     setLoading(false);
     if (signUpError) {
       setError(signUpError);
@@ -87,6 +89,7 @@ export default function SignUp() {
               onChangeText={setConfirmPassword}
               placeholder="Re-enter your password"
             />
+            <CountryPicker value={countryCode} onChange={setCountryCode} />
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
             <Button

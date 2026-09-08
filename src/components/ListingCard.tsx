@@ -5,11 +5,18 @@ import { useThemedStyles } from '../context/ThemeContext';
 import { radius, spacing } from '../theme/colors';
 import { formatPrice } from '../lib/format';
 import { isListingFeatured } from '../hooks/useListings';
+import { useAuth } from '../context/AuthContext';
+import { useExchangeRates } from '../hooks/useExchangeRates';
+import { currencyForCountry } from '../lib/countries';
 import type { ListingWithDetails } from '../types/database';
 
 export function ListingCard({ listing }: { listing: ListingWithDetails }) {
   const router = useRouter();
+  const { profile } = useAuth();
+  const { convert } = useExchangeRates();
   const image = listing.listing_images?.[0]?.url;
+  const viewerCurrency = currencyForCountry(profile?.country_code);
+  const converted = viewerCurrency && viewerCurrency !== listing.currency ? convert(listing.price, listing.currency, viewerCurrency) : null;
   const styles = useThemedStyles((colors) => ({
     card: { width: '48%' as const, marginBottom: spacing.lg },
     imageWrap: {
@@ -46,6 +53,7 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
       borderRadius: radius.sm,
     },
     price: { marginTop: spacing.sm, fontSize: 17, fontWeight: '800' as const, color: colors.text, letterSpacing: -0.2 },
+    estimate: { fontSize: 11.5, color: colors.textFaint, marginTop: 1 },
     title: { fontSize: 13.5, color: colors.text, marginTop: 2, lineHeight: 18 },
     metaRow: { flexDirection: 'row' as const, alignItems: 'center' as const, marginTop: 3, gap: 3 },
     meta: { fontSize: 12, color: colors.textMuted, flexShrink: 1 },
@@ -72,6 +80,7 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
         ) : null}
       </View>
       <Text style={styles.price}>{formatPrice(listing.price, listing.currency)}</Text>
+      {converted != null ? <Text style={styles.estimate}>≈ {formatPrice(converted, viewerCurrency!)}</Text> : null}
       <Text style={styles.title} numberOfLines={1}>
         {listing.title}
       </Text>
