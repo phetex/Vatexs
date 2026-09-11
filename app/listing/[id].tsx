@@ -38,6 +38,7 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
   const { isFavorite, toggle } = useFavorite(id);
   const { convert } = useExchangeRates();
   const viewerCurrency = currencyForCountry(profile?.country_code);
@@ -47,6 +48,28 @@ export default function ListingDetail() {
     loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
     heroImage: { width, height: width },
     heroPlaceholder: { alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.surface },
+    heroWrap: { position: 'relative' as const },
+    imageCounter: {
+      position: 'absolute' as const,
+      top: spacing.md,
+      right: spacing.md,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radius.pill,
+    },
+    imageCounterText: { color: '#fff', fontSize: 12, fontWeight: '700' as const },
+    dotsRow: {
+      position: 'absolute' as const,
+      bottom: spacing.md,
+      left: 0,
+      right: 0,
+      flexDirection: 'row' as const,
+      justifyContent: 'center' as const,
+      gap: 6,
+    },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.5)' },
+    dotActive: { backgroundColor: '#fff', width: 16 },
     body: { padding: spacing.lg },
     titleRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const },
     favoriteButton: { padding: spacing.xs },
@@ -156,17 +179,40 @@ export default function ListingDetail() {
     );
   }
 
-  const images = listing.listing_images?.length ? listing.listing_images : [];
+  const images = listing.listing_images?.length
+    ? [...listing.listing_images].sort((a, b) => a.position - b.position)
+    : [];
 
   return (
     <View style={styles.container}>
       <ScrollView bounces={false}>
         {images.length ? (
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {images.map((img) => (
-              <Image key={img.id} source={{ uri: img.url }} style={styles.heroImage} />
-            ))}
-          </ScrollView>
+          <View style={styles.heroWrap}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
+            >
+              {images.map((img) => (
+                <Image key={img.id} source={{ uri: img.url }} style={styles.heroImage} />
+              ))}
+            </ScrollView>
+            {images.length > 1 ? (
+              <>
+                <View style={styles.imageCounter}>
+                  <Text style={styles.imageCounterText}>
+                    {activeImage + 1}/{images.length}
+                  </Text>
+                </View>
+                <View style={styles.dotsRow}>
+                  {images.map((img, i) => (
+                    <View key={img.id} style={[styles.dot, i === activeImage && styles.dotActive]} />
+                  ))}
+                </View>
+              </>
+            ) : null}
+          </View>
         ) : (
           <View style={[styles.heroImage, styles.heroPlaceholder]}>
             <Ionicons name="image-outline" size={40} color={colors.textFaint} />

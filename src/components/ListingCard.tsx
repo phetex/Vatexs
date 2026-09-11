@@ -43,6 +43,19 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
       borderRadius: radius.sm,
     },
     soldText: { color: colors.white, fontSize: 10, fontWeight: '800' as const, letterSpacing: 0.5 },
+    photoCountBadge: {
+      position: 'absolute' as const,
+      bottom: spacing.sm,
+      right: spacing.sm,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 3,
+    },
+    photoCountText: { color: '#fff', fontSize: 10, fontWeight: '700' as const },
     featuredBadge: {
       position: 'absolute' as const,
       top: spacing.sm,
@@ -76,6 +89,12 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
         ) : isListingFeatured(listing) ? (
           <View style={styles.featuredBadge}>
             <Text style={styles.soldText}>FEATURED</Text>
+          </View>
+        ) : null}
+        {listing.listing_images && listing.listing_images.length > 1 ? (
+          <View style={styles.photoCountBadge}>
+            <Ionicons name="images-outline" size={10} color="#fff" />
+            <Text style={styles.photoCountText}>{listing.listing_images.length}</Text>
           </View>
         ) : null}
       </View>
