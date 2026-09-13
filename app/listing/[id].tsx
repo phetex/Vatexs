@@ -50,7 +50,7 @@ export default function ListingDetail() {
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
-    heroImage: { width, height: width },
+    heroImage: { width, height: width, backgroundColor: colors.surface },
     heroPlaceholder: { alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.surface },
     heroWrap: { position: 'relative' as const },
     imageCounter: {
@@ -209,7 +209,7 @@ export default function ListingDetail() {
               onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
             >
               {images.map((img) => (
-                <Image key={img.id} source={{ uri: img.url }} style={styles.heroImage} />
+                <Image key={img.id} source={{ uri: img.url }} style={styles.heroImage} resizeMode="contain" />
               ))}
             </ScrollView>
             {images.length > 1 ? (
