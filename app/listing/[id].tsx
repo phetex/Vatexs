@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Switch, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,10 +39,14 @@ export default function ListingDetail() {
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [useWalletCredit, setUseWalletCredit] = useState(true);
   const { isFavorite, toggle } = useFavorite(id);
   const { convert } = useExchangeRates();
   const viewerCurrency = currencyForCountry(profile?.country_code);
   const converted = listing && viewerCurrency && viewerCurrency !== listing.currency ? convert(listing.price, listing.currency, viewerCurrency) : null;
+  const walletBalance = profile?.wallet_credit_ngn ?? 0;
+  const walletApplicable = listing && listing.currency === 'NGN' ? Math.min(walletBalance, Math.max(0, listing.price - 100)) : 0;
+  const chargeAmount = listing ? listing.price - (useWalletCredit ? walletApplicable : 0) : 0;
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
@@ -91,6 +95,16 @@ export default function ListingDetail() {
     footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
     footerRow: { flexDirection: 'row' as const },
     secondaryFooterButton: { marginTop: spacing.sm },
+    walletRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    walletRowText: { flex: 1, fontSize: 12.5, color: colors.textMuted, marginRight: spacing.sm },
   }));
 
   useEffect(() => {
@@ -120,7 +134,7 @@ export default function ListingDetail() {
     try {
       const redirectUrl = Linking.createURL('payment-callback');
       const { data, error } = await supabase.functions.invoke('initialize-payment', {
-        body: { listing_id: listing.id, redirect_url: redirectUrl },
+        body: { listing_id: listing.id, redirect_url: redirectUrl, use_wallet_credit: useWalletCredit && walletApplicable > 0 },
       });
       if (error || data?.error) {
         throw new Error(await functionErrorMessage(error, data, 'Could not start checkout.'));
@@ -284,8 +298,19 @@ export default function ListingDetail() {
           )
         ) : listing.currency === 'NGN' ? (
           <View>
+            {walletApplicable > 0 ? (
+              <View style={styles.walletRow}>
+                <Text style={styles.walletRowText}>Use {formatPrice(walletApplicable, 'NGN')} wallet credit</Text>
+                <Switch
+                  value={useWalletCredit}
+                  onValueChange={setUseWalletCredit}
+                  trackColor={{ true: colors.primary, false: colors.border }}
+                  thumbColor={colors.white}
+                />
+              </View>
+            ) : null}
             <Button
-              title={`Buy now — ${formatPrice(listing.price, listing.currency)}`}
+              title={`Buy now — ${formatPrice(chargeAmount, listing.currency)}`}
               onPress={onBuyNow}
               loading={paying}
               disabled={listing.status === 'sold'}

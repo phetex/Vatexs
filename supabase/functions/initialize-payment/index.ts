@@ -6,7 +6,7 @@ export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
     const buyerId = ctx.userClaims!.id;
     const buyerEmail = ctx.userClaims!.email;
-    const { listing_id, redirect_url } = await req.json();
+    const { listing_id, redirect_url, use_wallet_credit } = await req.json();
 
     if (!listing_id) {
       return Response.json({ error: 'listing_id is required' }, { status: 400 });
@@ -37,7 +37,16 @@ export default {
       );
     }
 
-    const { commission, payout } = splitAmount(Number(listing.price));
+    let walletCreditUsed = 0;
+    if (use_wallet_credit) {
+      const { data: buyerProfile } = await ctx.supabaseAdmin.from('profiles').select('wallet_credit_ngn').eq('id', buyerId).single();
+      const available = Number(buyerProfile?.wallet_credit_ngn ?? 0);
+      const maxDiscount = Math.max(0, Number(listing.price) - 100); // leave at least ₦100 to charge
+      walletCreditUsed = Math.min(available, maxDiscount);
+    }
+    const chargeAmount = Number(listing.price) - walletCreditUsed;
+
+    const { commission, payout } = splitAmount(chargeAmount);
     const reference = `vatexs_${crypto.randomUUID().replace(/-/g, '')}`;
 
     const { data: order, error: orderError } = await ctx.supabaseAdmin
@@ -46,11 +55,12 @@ export default {
         listing_id: listing.id,
         buyer_id: buyerId,
         seller_id: listing.seller_id,
-        amount: listing.price,
+        amount: chargeAmount,
         currency: listing.currency,
         commission_amount: commission,
         payout_amount: payout,
         paystack_reference: reference,
+        wallet_credit_used: walletCreditUsed,
         status: 'pending',
       })
       .select('id')
@@ -63,7 +73,7 @@ export default {
     try {
       const result = await initializeTransaction({
         email: buyerEmail!,
-        amountKobo: Math.round(Number(listing.price) * 100),
+        amountKobo: Math.round(chargeAmount * 100),
         reference,
         callbackUrl: redirect_url || 'vatexs://payment-callback',
         metadata: { order_id: order.id, listing_id: listing.id, listing_title: listing.title },
@@ -73,6 +83,7 @@ export default {
         authorization_url: result.data.authorization_url,
         reference,
         order_id: order.id,
+        wallet_credit_used: walletCreditUsed,
       });
     } catch (err) {
       await ctx.supabaseAdmin.from('orders').update({ status: 'cancelled' }).eq('id', order.id);

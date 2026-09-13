@@ -252,6 +252,7 @@ export default function Settings() {
         <View style={styles.card}>
           <Row icon="receipt-outline" title="My orders" onPress={() => router.push('/orders')} />
           <Row icon="wallet-outline" title="Balance" onPress={() => router.push('/balance')} />
+          <Row icon="gift-outline" title="Refer & earn" subtitle="Earn credit when friends join" onPress={() => router.push('/referrals')} />
         </View>
 
         <Text style={styles.sectionLabel}>Selling</Text>

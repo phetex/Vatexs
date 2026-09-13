@@ -9,6 +9,9 @@ export interface Profile {
   location: string | null;
   bio: string | null;
   country_code: string | null;
+  referral_code: string;
+  referred_by: string | null;
+  wallet_credit_ngn: number;
   is_admin: boolean;
   holiday_mode: boolean;
   interested_categories: number[];
@@ -96,6 +99,7 @@ export interface Order {
   commission_amount: number;
   payout_amount: number;
   paystack_reference: string;
+  wallet_credit_used: number;
   status: OrderStatus;
   created_at: string;
   paid_at: string | null;

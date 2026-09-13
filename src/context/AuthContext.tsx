@@ -8,7 +8,13 @@ interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, fullName: string, countryCode?: string | null) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    countryCode?: string | null,
+    referralCode?: string | null
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -49,11 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   };
 
-  const signUp: AuthContextValue['signUp'] = async (email, password, fullName, countryCode) => {
+  const signUp: AuthContextValue['signUp'] = async (email, password, fullName, countryCode, referralCode) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, country_code: countryCode || null } },
+      options: { data: { full_name: fullName, country_code: countryCode || null, referral_code: referralCode || null } },
     });
     return { error: error?.message ?? null };
   };

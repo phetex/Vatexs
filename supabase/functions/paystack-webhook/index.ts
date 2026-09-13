@@ -21,7 +21,7 @@ export default {
 
       const { data: order } = await ctx.supabaseAdmin
         .from('orders')
-        .select('id, listing_id, seller_id, amount, status, listings ( title )')
+        .select('id, listing_id, buyer_id, seller_id, amount, status, wallet_credit_used, listings ( title )')
         .eq('paystack_reference', reference)
         .single();
 
@@ -36,6 +36,13 @@ export default {
           .update({ status: 'sold' })
           .eq('id', order.listing_id)
           .eq('status', 'active');
+
+        if (Number(order.wallet_credit_used) > 0) {
+          await ctx.supabaseAdmin.rpc('increment_wallet_credit', {
+            p_user_id: order.buyer_id,
+            p_amount: -Number(order.wallet_credit_used),
+          });
+        }
 
         const listingTitle = (order.listings as unknown as { title: string } | null)?.title ?? 'your item';
         await sendPushToUser(ctx.supabaseAdmin, order.seller_id, 'You made a sale! 🎉', `Someone just paid for "${listingTitle}".`, {

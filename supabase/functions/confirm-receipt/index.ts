@@ -3,6 +3,43 @@ import { withSupabase } from '@supabase/server';
 import { initiateTransfer } from '../_shared/paystack.ts';
 import { sendPushToUser } from '../_shared/push.ts';
 import { sendUserNotification } from '../_shared/resend.ts';
+import { getGbpToNgnRate } from '../_shared/exchangeRate.ts';
+
+const REFERRAL_REWARD_GBP = 10;
+
+// Rewards the referrer once their friend's FIRST order is released. Never
+// lets a referral hiccup affect the payout that already succeeded above.
+async function creditReferralRewardIfEligible(supabaseAdmin: any, buyerId: string, orderId: string) {
+  try {
+    const { data: buyer } = await supabaseAdmin.from('profiles').select('referred_by').eq('id', buyerId).single();
+    if (!buyer?.referred_by) return;
+
+    const { data: priorRelease } = await supabaseAdmin
+      .from('orders')
+      .select('id')
+      .eq('buyer_id', buyerId)
+      .eq('status', 'released')
+      .neq('id', orderId)
+      .limit(1)
+      .maybeSingle();
+    if (priorRelease) return; // not their first completed purchase
+
+    const rate = await getGbpToNgnRate();
+    const amountNgn = Math.round(REFERRAL_REWARD_GBP * rate);
+
+    const { error: insertError } = await supabaseAdmin
+      .from('referral_rewards')
+      .insert({ referrer_id: buyer.referred_by, referred_id: buyerId, order_id: orderId, amount_ngn: amountNgn });
+    if (insertError) return; // already rewarded (unique constraint) or other issue — skip silently
+
+    await supabaseAdmin.rpc('increment_wallet_credit', { p_user_id: buyer.referred_by, p_amount: amountNgn });
+    await sendPushToUser(supabaseAdmin, buyer.referred_by, 'You earned a referral reward! 🎁', `Your friend completed their first order — you earned ₦${amountNgn.toLocaleString()} in Vatexs credit.`, {
+      type: 'referral_reward',
+    });
+  } catch {
+    // best-effort — never block order release over this
+  }
+}
 
 async function log(supabaseAdmin: any, stage: string, message: string) {
   try {
@@ -143,6 +180,8 @@ export default {
       type: 'order_released',
       order_id: order.id,
     });
+
+    await creditReferralRewardIfEligible(ctx.supabaseAdmin, order.buyer_id, order.id);
 
     // Order is closed — issue the Goods Received Note (buyer) and Issue Note (seller).
     // Fully decoupled from the response above: dynamic import + its own try/catch,
