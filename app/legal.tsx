@@ -66,10 +66,25 @@ export default function Legal() {
           point they're transferred to the seller's verified bank account, minus a 10% Vatexs service fee.
         </Text>
 
-        <Text style={styles.sectionLabel}>Disputes & refunds</Text>
+        <Text style={styles.sectionLabel}>Refund Policy</Text>
         <Text style={styles.body}>
-          If an order goes wrong, either party can open a support ticket. Vatexs can issue a refund to the buyer
-          directly from escrow while a ticket is under review.
+          Vatexs holds a buyer's payment in escrow from the moment an order is placed until the buyer confirms the
+          item arrived as described. While an order is still in escrow (status "Paid", before receipt is
+          confirmed), the buyer can open a support ticket for any issue — item not received, item not as
+          described, a payment problem, or anything else — and Vatexs can issue a full refund back to the original
+          payment method directly from escrow while the ticket is reviewed.
+        </Text>
+        <Text style={[styles.body, { marginTop: spacing.sm }]}>
+          Once the buyer confirms receipt, escrow is released and the seller is paid out immediately. From that
+          point, Vatexs can no longer issue an automatic in-app refund — the funds have already left escrow. Any
+          dispute after release is handled manually: open a support ticket or email support@vatexs.store and our
+          team will work directly with both parties.
+        </Text>
+        <Text style={[styles.body, { marginTop: spacing.sm }]}>
+          Refunds are only available for orders paid through Vatexs checkout. The Vatexs service fee is refunded in
+          full along with the item price when a refund is issued from escrow. A copy of this policy, with a
+          scannable barcode for the order reference, is included with every order's Goods Received Note and Issue
+          Note.
         </Text>
 
         <Text style={styles.sectionLabel}>Contact</Text>

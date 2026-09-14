@@ -1,9 +1,28 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'npm:pdf-lib@1.17.1';
+import bwipjs from 'npm:bwip-js@4.5.1';
 
 const PRIMARY = rgb(0.357, 0.306, 1); // #5B4EFF
 const TEXT = rgb(0.078, 0.078, 0.122); // #14141F
 const MUTED = rgb(0.42, 0.42, 0.48); // #6B6B7B
 const BORDER = rgb(0.902, 0.902, 0.933); // #E6E6EE
+
+// Kept in sync with the "Refund Policy" copy in app/legal.tsx — this is the
+// version that travels with every order as a PDF, the app screen is the
+// version buyers/sellers can read any time.
+export const REFUND_POLICY_PARAGRAPHS: string[] = [
+  'Vatexs holds a buyer\'s payment in escrow from the moment an order is placed until the buyer confirms the item ' +
+    'arrived as described. While an order is still in escrow (status "Paid", before receipt is confirmed), the ' +
+    'buyer can open a support ticket for any issue — item not received, item not as described, a payment problem, ' +
+    'or anything else — and Vatexs can issue a full refund back to the original payment method directly from escrow ' +
+    'while the ticket is reviewed.',
+  'Once the buyer confirms receipt, escrow is released and the seller is paid out immediately. From that point, ' +
+    'Vatexs can no longer issue an automatic in-app refund — the funds have already left escrow. Any dispute after ' +
+    'release is handled manually: open a support ticket or email support@vatexs.store and our team will work ' +
+    'directly with both parties.',
+  'Refunds are only available for orders paid through Vatexs checkout. The Vatexs service fee is refunded in full ' +
+    'along with the item price when a refund is issued from escrow. Vatexs facilitates payment escrow and dispute ' +
+    'resolution between independent buyers and sellers and is not itself a party to the sale.',
+];
 
 export type OrderNoteType = 'grn' | 'issue_note';
 
@@ -33,6 +52,45 @@ function money(amount: number, currency: string) {
 function drawLabelValue(page: PDFPage, font: PDFFont, boldFont: PDFFont, x: number, y: number, label: string, value: string) {
   page.drawText(label, { x, y, size: 9, font, color: MUTED });
   page.drawText(value, { x, y: y - 14, size: 12, font: boldFont, color: TEXT });
+}
+
+function wrapText(font: PDFFont, text: string, size: number, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (font.widthOfTextAtSize(candidate, size) > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// Renders a scannable Code128 barcode for the order reference. Best-effort:
+// if barcode rendering ever fails, the policy page still prints fine without
+// it — a missing graphic should never break invoice generation.
+async function renderBarcodePng(text: string): Promise<Uint8Array | null> {
+  try {
+    const png = await bwipjs.toBuffer({
+      bcid: 'code128',
+      text,
+      scale: 3,
+      height: 12,
+      includetext: true,
+      textxalign: 'center',
+      textsize: 8,
+      paddingwidth: 4,
+      paddingheight: 4,
+    });
+    return new Uint8Array(png);
+  } catch {
+    return null;
+  }
 }
 
 export async function buildOrderNotePdf(data: OrderNoteData): Promise<Uint8Array> {
@@ -105,7 +163,47 @@ export async function buildOrderNotePdf(data: OrderNoteData): Promise<Uint8Array
   });
   page.drawText('vatexs.store', { x: margin, y: 46, size: 8, font, color: MUTED });
 
+  await addRefundPolicyPage(doc, font, bold, data.paystackReference);
+
   return doc.save();
+}
+
+async function addRefundPolicyPage(doc: PDFDocument, font: PDFFont, bold: PDFFont, reference: string) {
+  const page = doc.addPage([595.28, 841.89]);
+  const margin = 50;
+  const maxWidth = 595.28 - margin * 2;
+  let y = 780;
+
+  page.drawText('VATEXS', { x: margin, y, size: 22, font: bold, color: PRIMARY });
+  const title = 'Refund Policy';
+  const titleWidth = bold.widthOfTextAtSize(title, 14);
+  page.drawText(title, { x: 595.28 - margin - titleWidth, y: y + 4, size: 14, font: bold, color: TEXT });
+  y -= 30;
+  page.drawLine({ start: { x: margin, y }, end: { x: 595.28 - margin, y }, thickness: 1, color: BORDER });
+  y -= 30;
+
+  for (const paragraph of REFUND_POLICY_PARAGRAPHS) {
+    const lines = wrapText(font, paragraph, 10.5, maxWidth);
+    for (const line of lines) {
+      page.drawText(line, { x: margin, y, size: 10.5, font, color: TEXT });
+      y -= 16;
+    }
+    y -= 12;
+  }
+
+  const barcode = await renderBarcodePng(reference);
+  if (barcode) {
+    const image = await doc.embedPng(barcode);
+    const scale = Math.min(1, maxWidth / image.width);
+    const w = image.width * scale;
+    const h = image.height * scale;
+    y -= 10;
+    page.drawText('SCAN TO LOOK UP THIS ORDER', { x: margin, y, size: 8, font, color: MUTED });
+    y -= h + 10;
+    page.drawImage(image, { x: margin, y, width: w, height: h });
+  } else {
+    page.drawText(`Order reference: ${reference}`, { x: margin, y, size: 10.5, font: bold, color: TEXT });
+  }
 }
 
 export function base64FromBytes(bytes: Uint8Array): string {
