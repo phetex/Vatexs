@@ -294,6 +294,7 @@
       <div class="btn-row">
         <button class="btn btn-outline" id="ticket-resolve-btn">Mark resolved</button>
         <button class="btn btn-outline" id="ticket-close-btn">Close</button>
+        <button class="btn btn-outline" id="ticket-refund-policy-btn">View refund policy</button>
         <button class="btn btn-danger" id="ticket-refund-btn" style="display:none;">Refund order</button>
       </div>
     </div>
@@ -592,6 +593,10 @@
   document.getElementById('ticket-resolve-btn').addEventListener('click', () => setTicketStatus('resolved'));
   document.getElementById('ticket-close-btn').addEventListener('click', () => setTicketStatus('closed'));
 
+  document.getElementById('ticket-refund-policy-btn').addEventListener('click', () => {
+    viewRefundPolicy(currentTicket ? currentTicket.order_id : null);
+  });
+
   document.getElementById('ticket-refund-btn').addEventListener('click', async () => {
     if (!currentTicket || !currentTicket.order_id) return;
     if (!confirm(`Refund ${fmtMoney(currentTicket.orders.amount, currentTicket.orders.currency)} to the buyer? This cannot be undone.`)) return;
@@ -627,14 +632,15 @@
           <span class="pill ${o.status}">${o.status}</span>
         </div>
         <div class="list-item-meta">Buyer: ${o.buyer?.full_name || '—'} · Seller: ${o.seller?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
-        ${
-          o.status === 'released'
-            ? `<div class="btn-row">
-                <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="grn">Download GRN</button>
-                <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="issue_note">Download Issue Note</button>
-              </div>`
-            : ''
-        }
+        <div class="btn-row">
+          ${
+            o.status === 'released'
+              ? `<button class="btn btn-outline btn-note" data-order="${o.id}" data-type="grn">Download GRN</button>
+                 <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="issue_note">Download Issue Note</button>`
+              : ''
+          }
+          <button class="btn btn-outline btn-refund-policy" data-order="${o.id}">View refund policy</button>
+        </div>
       `;
       list.appendChild(el);
     });
@@ -642,6 +648,9 @@
 
     list.querySelectorAll('.btn-note').forEach((btn) => {
       btn.addEventListener('click', () => downloadOrderNote(btn.dataset.order, btn.dataset.type, btn));
+    });
+    list.querySelectorAll('.btn-refund-policy').forEach((btn) => {
+      btn.addEventListener('click', () => viewRefundPolicy(btn.dataset.order, btn));
     });
   }
 
@@ -673,6 +682,20 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function viewRefundPolicy(orderId, btn) {
+    if (btn) { btn.disabled = true; var original = btn.textContent; btn.textContent = 'Loading…'; }
+    const { data, error } = await supabase.functions.invoke('refund-policy', { body: { order_id: orderId || null } });
+    if (btn) { btn.disabled = false; btn.textContent = original; }
+    if (error || data?.error) {
+      alert('Could not load refund policy: ' + (await functionErrorMessage(error, data, 'Please try again.')));
+      return;
+    }
+    const blob = base64ToBlob(data.base64, 'application/pdf');
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   // ---------- Appointments ----------

@@ -206,6 +206,17 @@ async function addRefundPolicyPage(doc: PDFDocument, font: PDFFont, bold: PDFFon
   }
 }
 
+// Standalone refund policy PDF — for admins to pull up while reviewing a
+// ticket, before an order has reached "released" (when the full GRN/Issue
+// Note isn't available yet). Same content as the page attached to invoices.
+export async function buildRefundPolicyPdf(reference?: string | null): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  await addRefundPolicyPage(doc, font, bold, reference || 'vatexs.store');
+  return doc.save();
+}
+
 export function base64FromBytes(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
