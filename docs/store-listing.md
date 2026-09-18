@@ -79,7 +79,7 @@ marketplace,buy,sell,escrow,secondhand,classifieds,fashion,electronics,nigeria,s
 
 **Age rating questionnaire**: no objectionable content, no gambling, no unrestricted web access → typically rates 4+. Since it's a peer-to-peer marketplace with user-generated listings and payments, flag "Unrestricted Web Access: No" and answer the commerce-related questions (in-app purchases: No — payments are for physical goods between users, not digital IAP) honestly per Apple's questionnaire.
 
-**Demo account for reviewers**: same account as the Google Play section below — `playreview@vatexs.store` / `VatexsDemo2026!`, with two sample listings already on it.
+**Demo account for reviewers**: same account as the Google Play section below — `playreview@vatexs.store` / `VatexsDemo2026!`. The account has no listings of its own, but the home feed shows real listings from other sellers.
 
 **App Privacy (the "nutrition label" section in App Store Connect → App Privacy)** — Apple's categories are different from Google's Data Safety form but describe the same underlying facts. For every entry below, "Used for tracking" is **No** across the board — Vatexs has no ad network or cross-app/cross-site tracking SDK.
 
@@ -173,7 +173,7 @@ Shopping
 **Demo account for reviewers**: a real, live account exists for this —
 - Email: `playreview@vatexs.store`
 - Password: `VatexsDemo2026!`
-- This account has two sample listings ("[Demo] Denim Jacket", "[Demo] Bluetooth Speaker") under its profile so a reviewer can see the seller side (My listings, Edit profile, Settings, Balance) immediately after logging in. Browsing/messaging/buying other users' real listings works normally from this account too. A fully completed purchase can't be faked (it would mean a real Paystack charge), so reviewers evaluate the buy flow up through the checkout screen rather than a completed payout — this is normal for a live-payments marketplace app.
+- This account has no listings of its own, so its Profile shows an empty "Your listings" state. A reviewer can still see the seller side (Sell form, Edit profile, Settings, Balance) after logging in, and browsing/messaging/buying other users' real listings works normally from this account. If a reviewer needs to see an active listing under this profile, post one from the Sell tab with a real photo. A fully completed purchase can't be faked (it would mean a real Paystack charge), so reviewers evaluate the buy flow up through the checkout screen rather than a completed payout — this is normal for a live-payments marketplace app.
 
 **Closed testing requirement**: ✅ Met — the closed test ran with 12+ testers for 14 continuous days, and Play Console now shows "Apply for access to production" as unlocked.
 
