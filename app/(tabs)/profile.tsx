@@ -7,10 +7,12 @@ import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useListings } from '../../src/hooks/useListings';
+import { useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Profile() {
+  useTrackScreen('profile');
   const { colors } = useTheme();
   const { session, profile, signOut } = useAuth();
   const router = useRouter();

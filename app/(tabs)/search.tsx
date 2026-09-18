@@ -1,17 +1,26 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useListings } from '../../src/hooks/useListings';
+import { trackEvent, useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 
 export default function Search() {
+  useTrackScreen('search');
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const { listings, loading } = useListings({ search: query.trim() || undefined });
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const timeout = setTimeout(() => trackEvent('search_performed', { query_length: trimmed.length }), 800);
+    return () => clearTimeout(timeout);
+  }, [query]);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     searchBar: {

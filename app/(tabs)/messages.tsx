@@ -6,10 +6,12 @@ import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useConversations } from '../../src/hooks/useConversations';
 import { timeAgo } from '../../src/lib/format';
+import { useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Messages() {
+  useTrackScreen('messages');
   const router = useRouter();
   const { colors } = useTheme();
   const { session } = useAuth();

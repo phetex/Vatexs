@@ -16,6 +16,7 @@ import { functionErrorMessage } from '../../src/lib/functionError';
 import { formatPrice, timeAgo } from '../../src/lib/format';
 import { useExchangeRates } from '../../src/hooks/useExchangeRates';
 import { currencyForCountry } from '../../src/lib/countries';
+import { trackEvent, useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 import type { ListingWithDetails } from '../../src/types/database';
@@ -30,6 +31,7 @@ const CONDITION_LABEL: Record<string, string> = {
 };
 
 export default function ListingDetail() {
+  useTrackScreen('listing_detail');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { session, profile } = useAuth();
@@ -130,6 +132,7 @@ export default function ListingDetail() {
 
   const onBuyNow = async () => {
     if (!listing) return;
+    trackEvent('buy_initiated', { category_id: listing.category_id, currency: listing.currency });
     setPaying(true);
     try {
       const redirectUrl = Linking.createURL('payment-callback');

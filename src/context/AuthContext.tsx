@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { setAnalyticsOptIn } from '../lib/analytics';
 import type { Profile } from '../types/database';
 
 interface AuthContextValue {
@@ -28,7 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (userId: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    setProfile(data as Profile | null);
+    const loaded = data as Profile | null;
+    setProfile(loaded);
+    setAnalyticsOptIn(!!loaded?.analytics_opt_in);
   };
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile(newSession.user.id);
       } else {
         setProfile(null);
+        setAnalyticsOptIn(false);
       }
     });
 

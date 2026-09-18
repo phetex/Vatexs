@@ -7,10 +7,12 @@ import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useListings } from '../../src/hooks/useListings';
+import { useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Home() {
+  useTrackScreen('home');
   const { colors } = useTheme();
   const { profile } = useAuth();
   const { categories } = useCategories();

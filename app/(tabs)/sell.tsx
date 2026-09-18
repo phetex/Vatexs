@@ -12,6 +12,7 @@ import { useCategories } from '../../src/hooks/useCategories';
 import { supabase } from '../../src/lib/supabase';
 import { uploadListingImage } from '../../src/lib/uploadImage';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../../src/lib/currency';
+import { trackEvent, useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 import type { Condition } from '../../src/types/database';
@@ -26,6 +27,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 const MAX_IMAGES = 6;
 
 export default function Sell() {
+  useTrackScreen('sell');
   const { colors } = useTheme();
   const { session } = useAuth();
   const { categories } = useCategories();
@@ -148,6 +150,7 @@ export default function Sell() {
         if (imagesError) throw imagesError;
       }
 
+      trackEvent('listing_created', { category_id: categoryId, currency, has_photos: images.length > 0 });
       resetForm();
       router.push(`/listing/${listing.id}`);
     } catch (err: any) {
