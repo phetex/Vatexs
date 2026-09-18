@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useCategories } from '../../src/hooks/useCategories';
 import { supabase } from '../../src/lib/supabase';
 import { uploadListingImage } from '../../src/lib/uploadImage';
 import { CURRENCIES, DEFAULT_CURRENCY } from '../../src/lib/currency';
+import { currencyForCountry } from '../../src/lib/countries';
 import { trackEvent, useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
@@ -29,7 +30,7 @@ const MAX_IMAGES = 6;
 export default function Sell() {
   useTrackScreen('sell');
   const { colors } = useTheme();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { categories } = useCategories();
   const router = useRouter();
 
@@ -37,6 +38,15 @@ export default function Sell() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+
+  // Default the currency chip to the seller's own country once their profile
+  // loads, instead of always GBP — only while they haven't picked one themselves.
+  useEffect(() => {
+    const sellerCurrency = currencyForCountry(profile?.country_code);
+    if (sellerCurrency && currency === DEFAULT_CURRENCY) {
+      setCurrency(sellerCurrency);
+    }
+  }, [profile?.country_code]);
   const [location, setLocation] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [condition, setCondition] = useState<Condition>('used');
@@ -102,7 +112,7 @@ export default function Sell() {
     setTitle('');
     setDescription('');
     setPrice('');
-    setCurrency(DEFAULT_CURRENCY);
+    setCurrency(currencyForCountry(profile?.country_code) ?? DEFAULT_CURRENCY);
     setLocation('');
     setCategoryId(null);
     setCondition('used');
