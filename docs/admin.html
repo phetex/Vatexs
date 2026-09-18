@@ -128,6 +128,18 @@
   .customer-detail.active { display: block; }
   .customer-detail .stat-row { display: flex; gap: 20px; margin-top: 8px; }
   .customer-detail .stat-row b { color: var(--text); font-size: 15px; display: block; }
+
+  .event-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 8px;
+  }
+  .event-row .name { font-weight: 700; font-size: 14px; }
+  .event-row .meta { font-size: 12px; color: var(--text-faint); }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .bar-row .bar-label { width: 90px; flex-shrink: 0; font-size: 12px; color: var(--text-muted); }
+  .bar-row .bar-track { flex: 1; height: 18px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+  .bar-row .bar-fill { height: 100%; background: var(--primary); border-radius: 4px; min-width: 2px; }
+  .bar-row .bar-count { width: 40px; flex-shrink: 0; font-size: 12px; font-weight: 700; text-align: right; }
 </style>
 </head>
 <body>
@@ -198,6 +210,7 @@
       <button class="admin-nav-item" data-panel="customers">Customers</button>
       <button class="admin-nav-item" data-panel="marketing">Marketing</button>
       <button class="admin-nav-item" data-panel="deals">Deals</button>
+      <button class="admin-nav-item" data-panel="analytics">Analytics</button>
     </nav>
     <button class="admin-signout" id="signout-btn">Sign out</button>
   </aside>
@@ -272,6 +285,25 @@
       </div>
       <h2 style="font-size:16px;margin-bottom:12px;">Currently boosted</h2>
       <div id="deals-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-analytics">
+      <h1>Analytics</h1>
+      <p style="font-size:13px;color:var(--text-muted);margin:-16px 0 20px;">
+        Anonymous, opt-in usage data — events carry a random per-device id, never a user's account. See Settings &rarr; "Analytics &amp; cookies" in the app.
+      </p>
+      <div class="stat-grid" id="analytics-stat-grid">
+        <div class="stat-card"><div class="num">—</div><div class="label">Events logged</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Unique devices</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Users opted in</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Opt-in rate</div></div>
+      </div>
+
+      <h2 style="font-size:16px;margin-bottom:12px;">Events by type</h2>
+      <div id="analytics-event-table" style="margin-bottom:32px;"></div>
+
+      <h2 style="font-size:16px;margin-bottom:12px;">Last 30 days</h2>
+      <div id="analytics-daily-chart"></div>
     </section>
   </main>
 </div>
@@ -419,6 +451,7 @@
     loadCustomers();
     loadSocialLinks();
     loadDeals();
+    loadAnalytics();
   }
 
   document.querySelectorAll('.password-toggle').forEach((btn) => {
@@ -1071,6 +1104,66 @@
       loadDeals();
     }));
   });
+
+  // ---------- Analytics ----------
+  async function loadAnalytics() {
+    const [{ data: summary }, { data: daily }, { count: optedInCount }, { count: totalUsers }] = await Promise.all([
+      supabase.from('analytics_event_summary').select('*'),
+      supabase.from('analytics_daily_summary').select('*'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('analytics_opt_in', true),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    ]);
+
+    const totalEvents = (summary || []).reduce((sum, r) => sum + r.event_count, 0);
+    // event_summary is per event_name, so unique_devices per row can overlap across
+    // event types — use the daily summary's max as a reasonable "active devices" figure instead.
+    const maxDailyDevices = (daily || []).reduce((max, r) => Math.max(max, r.unique_devices), 0);
+    const optInRate = totalUsers ? Math.round(((optedInCount || 0) / totalUsers) * 100) : 0;
+
+    const cards = document.querySelectorAll('#analytics-stat-grid .stat-card .num');
+    cards[0].textContent = totalEvents;
+    cards[1].textContent = maxDailyDevices;
+    cards[2].textContent = optedInCount ?? 0;
+    cards[3].textContent = optInRate + '%';
+
+    const table = document.getElementById('analytics-event-table');
+    table.innerHTML = '';
+    if (!summary || summary.length === 0) {
+      table.innerHTML = '<p class="hint">No analytics events yet — nothing will show here until testers opt in from Settings and use the app.</p>';
+    } else {
+      summary.forEach((row) => {
+        const el = document.createElement('div');
+        el.className = 'event-row';
+        el.innerHTML = `
+          <div>
+            <div class="name">${row.event_name}</div>
+            <div class="meta">${row.unique_devices} device${row.unique_devices === 1 ? '' : 's'}</div>
+          </div>
+          <div class="name">${row.event_count}</div>
+        `;
+        table.appendChild(el);
+      });
+    }
+
+    const chart = document.getElementById('analytics-daily-chart');
+    chart.innerHTML = '';
+    if (!daily || daily.length === 0) {
+      chart.innerHTML = '<p class="hint">No daily data yet.</p>';
+    } else {
+      const maxCount = Math.max(...daily.map((r) => r.event_count), 1);
+      [...daily].reverse().forEach((row) => {
+        const pct = Math.max(4, Math.round((row.event_count / maxCount) * 100));
+        const el = document.createElement('div');
+        el.className = 'bar-row';
+        el.innerHTML = `
+          <div class="bar-label">${new Date(row.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <div class="bar-count">${row.event_count}</div>
+        `;
+        chart.appendChild(el);
+      });
+    }
+  }
 
   checkSession();
 </script>
