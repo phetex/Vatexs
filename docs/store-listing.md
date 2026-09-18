@@ -79,7 +79,7 @@ marketplace,buy,sell,escrow,secondhand,classifieds,fashion,electronics,nigeria,s
 
 **Age rating questionnaire**: no objectionable content, no gambling, no unrestricted web access → typically rates 4+. Since it's a peer-to-peer marketplace with user-generated listings and payments, flag "Unrestricted Web Access: No" and answer the commerce-related questions (in-app purchases: No — payments are for physical goods between users, not digital IAP) honestly per Apple's questionnaire.
 
-**Demo account for reviewers** (Apple will ask for one — prepare a test buyer + test seller account with a couple of sample listings and a completed order so the reviewer can see the escrow flow without needing a real Paystack payment).
+**Demo account for reviewers**: same account as the Google Play section below — `playreview@vatexs.store` / `VatexsDemo2026!`, with two sample listings already on it.
 
 ---
 
@@ -133,17 +133,33 @@ Shopping
 
 **Content rating questionnaire**: answer honestly — user-generated content (listings, messages), no violence/adult content built into the app itself, but since users can message each other and post photos, expect a rating similar to "Parental Guidance" / Teen depending on the questionnaire's UGC + messaging questions.
 
-**Data safety form**: Vatexs collects — email/phone (account), photos (listings), location (optional, listing location), financial info is handled by Paystack (not stored by Vatexs beyond bank name/last 4 digits + Paystack recipient code). Declare data is encrypted in transit, and that users can request account deletion (confirm you actually have an account-deletion path before submitting — flag if not).
+**Data safety form** — answer per section, based on what the app actually collects:
 
-**Closed testing requirement**: Google requires new personal developer accounts to run a closed test with at least 20 opted-in testers for 14 days before a production release is allowed. Plan for this — I can help set up an internal/closed testing track once you have a Play Console account.
+- *Personal info*: Name, Email address (required, account creation). Phone number (optional profile field). Address — no (only a free-text city label, not a precise/device location; answer "Approximate location" only if asked about the optional listing/profile location text field — there is no GPS/device location permission).
+- *Financial info*: Purchase history (order records — amount, currency, status). User payment info — collected but **not stored by Vatexs**: full card/bank details go straight to Paystack; Vatexs only keeps bank name, account holder name, and the last 4 digits of a seller's payout account.
+- *Photos*: Collected (listing photos, optional profile photo).
+- *App activity / User content*: In-app messages (buyer↔seller chat), in-app search history is not stored beyond the current session.
+- *Device or other IDs*: Push notification token (for order/message alerts) — this is a device-level push identifier, not an advertising ID; Vatexs has no ad SDK.
+- *Purpose*: All of the above is collected for account functionality, the core marketplace/payments feature, and fraud prevention/customer support — not for advertising (Vatexs has no ad network integrated).
+- *Data sharing*: Shared with service providers only — Supabase (hosting/auth/storage), Paystack (payments/payouts), Resend (transactional email), Anthropic (in-app AI assistant replies). None of these are advertising or data-broker partners; none of this data is sold.
+- *Security*: Data is encrypted in transit (HTTPS/TLS). Users can request account deletion.
+- *Account deletion*: Yes — both in-app (Profile → Settings → Danger zone → Delete account) **and** a no-login-required path via email to support@vatexs.store, documented at https://vatexs.store/delete-account.html. Some data (order/transaction records) is retained after deletion where required for legal/accounting/fraud-prevention reasons — the profile itself is anonymized, not linked back to the person.
+
+**Content rating / declarations**: user-generated content (listings, chat) → expect a rating similar to Teen/PG depending on the questionnaire's UGC wording. Declare "financial features": Yes — the app facilitates payments between users for physical goods (via Paystack), which Play Console will ask about specifically; this is not in-app purchases/Google Play Billing since nothing digital is sold. No ads, no gambling.
+
+**Demo account for reviewers**: a real, live account exists for this —
+- Email: `playreview@vatexs.store`
+- Password: `VatexsDemo2026!`
+- This account has two sample listings ("[Demo] Denim Jacket", "[Demo] Bluetooth Speaker") under its profile so a reviewer can see the seller side (My listings, Edit profile, Settings, Balance) immediately after logging in. Browsing/messaging/buying other users' real listings works normally from this account too. A fully completed purchase can't be faked (it would mean a real Paystack charge), so reviewers evaluate the buy flow up through the checkout screen rather than a completed payout — this is normal for a live-payments marketplace app.
+
+**Closed testing requirement**: ✅ Met — the closed test ran with 12+ testers for 14 continuous days, and Play Console now shows "Apply for access to production" as unlocked.
 
 ---
 
-## Assets still needed (not code — need to be created/exported)
+## Assets
 
-- App icon (already have `icon.png` — confirm it meets both stores' size/shape requirements: 1024×1024 no alpha for iOS, adaptive icon for Android)
-- iPhone screenshots (6.7" and 6.5" required sizes) and iPad if supporting tablet
-- Android phone screenshots (min 2, up to 8) and a feature graphic (1024×500)
-- Optional: a short preview video for both stores (not required to launch)
-
-I can generate these from the running app once builds are ready, or you can take real screenshots on your device — real screenshots usually convert better than staged ones.
+- ✅ App icon — `assets/icon.png` (1024×1024)
+- ✅ Android feature graphic — `docs/play-feature-graphic.png` (1024×500)
+- ✅ Android hi-res icon — `docs/play-icon-512.png` (512×512)
+- ✅ Phone screenshots — `docs/screenshots/` (captured from the live app via the demo account: Home/browse, listing detail, Sell, Profile, Settings). Use these for both Android (min 2 required) and iOS (6.7"/6.5" sizes) listings — Apple requires device-specific dimensions, so these may need resizing/re-capturing at the exact iPhone resolutions before upload; Android accepts them close to as-is.
+- Optional, not required to launch: a short preview video for either store.
