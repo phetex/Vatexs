@@ -81,6 +81,28 @@ marketplace,buy,sell,escrow,secondhand,classifieds,fashion,electronics,nigeria,s
 
 **Demo account for reviewers**: same account as the Google Play section below — `playreview@vatexs.store` / `VatexsDemo2026!`, with two sample listings already on it.
 
+**App Privacy (the "nutrition label" section in App Store Connect → App Privacy)** — Apple's categories are different from Google's Data Safety form but describe the same underlying facts. For every entry below, "Used for tracking" is **No** across the board — Vatexs has no ad network or cross-app/cross-site tracking SDK.
+
+| Apple category | What it maps to | Linked to identity? | Purpose |
+|---|---|---|---|
+| Contact Info → Name | Full name (account) | Yes | App Functionality |
+| Contact Info → Email Address | Email (account) | Yes | App Functionality |
+| Contact Info → Phone Number | Phone (optional profile field) | Yes | App Functionality |
+| Financial Info → Other Financial Info | Seller payout details — bank name, account holder name, last 4 digits (full account number goes straight to Paystack, never stored by Vatexs) | Yes | App Functionality |
+| Purchases → Purchase History | Order records (amount, currency, status, timestamps) | Yes | App Functionality |
+| User Content → Photos or Videos | Listing photos, optional profile photo | Yes | App Functionality |
+| User Content → Other User Content | Buyer↔seller chat messages | Yes | App Functionality |
+| User Content → Customer Support | Support ticket messages | Yes | App Functionality, Customer Support |
+| Identifiers → User ID | Account id | Yes | App Functionality |
+| Identifiers → Device ID | Push notification token | Yes | App Functionality |
+| Usage Data → Product Interaction | Anonymous analytics events (screen views, search performed, listing created, buy initiated) — opt-in only via Settings, tagged with a random per-device id generated locally, **not** the account id | **No — Not Linked** | Analytics |
+| Location | Not collected — the "location" fields on profile/listings are free-text (e.g. "Manchester"), never derived from device/GPS location services | — | — |
+| Contacts, Health & Fitness, Sensitive Info, Browsing History, Search History, Diagnostics | Not collected | — | — |
+
+Note the Product Interaction row is the one place Apple's "linked vs. not linked" distinction actually matters and works in Vatexs's favor — because the anon id is generated and stored locally rather than tied to the account, it qualifies as Not Linked, which is a lighter privacy declaration than everything else in the table.
+
+**Age rating questionnaire**: no objectionable content, no gambling, no unrestricted web access → typically rates 4+. Since it's a peer-to-peer marketplace with user-generated listings and payments, flag "Unrestricted Web Access: No" and answer the commerce-related questions (in-app purchases: No — payments are for physical goods between users, not digital IAP) honestly per Apple's questionnaire.
+
 ---
 
 ## Google Play Console
