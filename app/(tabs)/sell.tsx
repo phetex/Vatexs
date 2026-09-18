@@ -81,6 +81,7 @@ export default function Sell() {
       borderWidth: 1.5,
       borderColor: colors.border,
       borderStyle: 'dashed' as const,
+      marginRight: spacing.sm,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
     },
@@ -101,6 +102,18 @@ export default function Sell() {
       selectionLimit: MAX_IMAGES - images.length,
       quality: 0.8,
     });
+    if (!result.canceled) {
+      setImages((prev) => [...prev, ...result.assets].slice(0, MAX_IMAGES));
+    }
+  };
+
+  const takePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission needed', 'Allow camera access to take a picture for your listing.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
     if (!result.canceled) {
       setImages((prev) => [...prev, ...result.assets].slice(0, MAX_IMAGES));
     }
@@ -187,10 +200,16 @@ export default function Sell() {
               </View>
             ))}
             {images.length < MAX_IMAGES ? (
-              <Pressable style={styles.addImage} onPress={pickImages}>
-                <Ionicons name="camera-outline" size={24} color={colors.textMuted} />
-                <Text style={styles.addImageText}>Add photo</Text>
-              </Pressable>
+              <>
+                <Pressable style={styles.addImage} onPress={takePhoto}>
+                  <Ionicons name="camera-outline" size={24} color={colors.textMuted} />
+                  <Text style={styles.addImageText}>Take photo</Text>
+                </Pressable>
+                <Pressable style={styles.addImage} onPress={pickImages}>
+                  <Ionicons name="images-outline" size={24} color={colors.textMuted} />
+                  <Text style={styles.addImageText}>Add photo</Text>
+                </Pressable>
+              </>
             ) : null}
           </ScrollView>
 

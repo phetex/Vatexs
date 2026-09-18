@@ -37,6 +37,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Vatexs uses your photos so you can add pictures to your listings.",
+          "cameraPermission": "Vatexs uses your camera so you can take pictures for your listings.",
           "microphonePermission": false
         }
       ],
