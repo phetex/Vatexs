@@ -1,4 +1,4 @@
-import { FlatList, Image, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,7 @@ export default function Profile() {
     editButton: { width: '100%' as const },
     sectionTitle: { fontSize: 16, fontWeight: '700' as const, color: colors.text, marginBottom: spacing.md },
     signOut: { marginTop: spacing.lg },
+    loading: { marginTop: spacing.xl },
   }));
 
   return (
@@ -63,7 +64,13 @@ export default function Profile() {
             <Text style={styles.sectionTitle}>Your listings</Text>
           </View>
         }
-        ListEmptyComponent={!loading ? <EmptyState icon="pricetag-outline" title="You haven't listed anything yet" subtitle="Tap Sell to publish your first item." /> : null}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loading} />
+          ) : (
+            <EmptyState icon="pricetag-outline" title="You haven't listed anything yet" subtitle="Tap Sell to publish your first item." />
+          )
+        }
         renderItem={({ item }) => <ListingCard listing={item} />}
         ListFooterComponent={<Button title="Sign out" variant="danger" onPress={signOut} style={styles.signOut} />}
       />

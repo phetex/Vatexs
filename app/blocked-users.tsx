@@ -6,7 +6,7 @@ import { Button } from '../src/components/Button';
 import { EmptyState } from '../src/components/EmptyState';
 import { useAuth } from '../src/context/AuthContext';
 import { supabase } from '../src/lib/supabase';
-import { useThemedStyles } from '../src/context/ThemeContext';
+import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
 import { radius, spacing } from '../src/theme/colors';
 
 interface BlockedRow {
@@ -15,6 +15,7 @@ interface BlockedRow {
 }
 
 export default function BlockedUsers() {
+  const { colors } = useTheme();
   const { session } = useAuth();
   const [rows, setRows] = useState<BlockedRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ export default function BlockedUsers() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color="#5B4EFF" style={{ marginTop: spacing.xl }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
       </View>
     );
   }
@@ -72,7 +73,7 @@ export default function BlockedUsers() {
                 <Image source={{ uri: row.profiles.avatar_url }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Ionicons name="person" size={18} color="#A0A0B0" />
+                  <Ionicons name="person" size={18} color={colors.textFaint} />
                 </View>
               )}
               <Text style={styles.name}>{row.profiles?.full_name || 'Vatexs user'}</Text>

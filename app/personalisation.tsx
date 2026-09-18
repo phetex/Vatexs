@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { CategoryChip } from '../src/components/CategoryChip';
@@ -39,10 +39,12 @@ export default function Personalisation() {
     setSaving(true);
     const { error } = await supabase.from('profiles').update({ interested_categories: selected }).eq('id', session.user.id);
     setSaving(false);
-    if (!error) {
-      setSaved(true);
-      await refreshProfile();
+    if (error) {
+      Alert.alert('Could not save', error.message);
+      return;
     }
+    setSaved(true);
+    await refreshProfile();
   };
 
   return (

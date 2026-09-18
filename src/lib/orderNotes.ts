@@ -15,5 +15,7 @@ export async function downloadOrderNote(orderId: string, type: OrderNoteType) {
 
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(fileUri, { mimeType: 'application/pdf', dialogTitle: data.filename });
+  } else {
+    throw new Error('Sharing is not available on this device.');
   }
 }

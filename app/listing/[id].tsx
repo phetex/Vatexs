@@ -7,6 +7,7 @@ import { Pressable } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Button } from '../../src/components/Button';
+import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { fetchListing } from '../../src/hooks/useListings';
 import { useFavorite } from '../../src/hooks/useFavorite';
@@ -38,6 +39,7 @@ export default function ListingDetail() {
   const router = useRouter();
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -109,11 +111,20 @@ export default function ListingDetail() {
     walletRowText: { flex: 1, fontSize: 12.5, color: colors.textMuted, marginRight: spacing.sm },
   }));
 
-  useEffect(() => {
+  const loadListing = () => {
+    setLoading(true);
+    setLoadError(false);
     fetchListing(id)
       .then(setListing)
+      .catch((err: any) => {
+        // PGRST116 = no matching row (Postgrest's .single() error for 0 results) — that's
+        // a real "not found", not a connection/server problem, so keep it as !listing.
+        if (err?.code !== 'PGRST116') setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(loadListing, [id]);
 
   const isOwner = listing && session?.user.id === listing.seller_id;
 
@@ -188,10 +199,19 @@ export default function ListingDetail() {
     );
   }
 
+  if (loadError) {
+    return (
+      <View style={styles.loading}>
+        <EmptyState icon="cloud-offline-outline" title="Could not load this listing" subtitle="Check your connection and try again." />
+        <Button title="Retry" variant="outline" onPress={loadListing} style={{ marginTop: spacing.md }} />
+      </View>
+    );
+  }
+
   if (!listing) {
     return (
       <View style={styles.loading}>
-        <Text>Listing not found.</Text>
+        <EmptyState icon="pricetag-outline" title="Listing not found" subtitle="This listing may have been removed." />
       </View>
     );
   }
@@ -244,7 +264,7 @@ export default function ListingDetail() {
               <Text style={styles.title}>{listing.title}</Text>
             </View>
             {!isOwner ? (
-              <Pressable onPress={toggle} style={styles.favoriteButton}>
+              <Pressable onPress={toggle} style={styles.favoriteButton} hitSlop={12}>
                 <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? colors.accent : colors.textMuted} />
               </Pressable>
             ) : null}

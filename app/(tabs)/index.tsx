@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CategoryChip } from '../../src/components/CategoryChip';
 import { ListingCard } from '../../src/components/ListingCard';
@@ -27,6 +27,7 @@ export default function Home() {
     chipRowContent: { paddingHorizontal: spacing.lg },
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
     row: { justifyContent: 'space-between' as const },
+    loading: { marginTop: spacing.xl },
   }));
 
   const firstName = profile?.full_name?.split(' ')[0];
@@ -72,7 +73,11 @@ export default function Home() {
           </View>
         }
         ListEmptyComponent={
-          !loading ? <EmptyState icon="pricetags-outline" title="No listings yet" subtitle="Be the first to sell something in this category." /> : null
+          loading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loading} />
+          ) : (
+            <EmptyState icon="pricetags-outline" title="No listings yet" subtitle="Be the first to sell something in this category." />
+          )
         }
         renderItem={({ item }) => <ListingCard listing={item} />}
       />

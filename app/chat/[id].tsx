@@ -72,7 +72,13 @@ export default function Chat() {
       )
       .eq('id', id)
       .single()
-      .then(({ data }) => setConversation(data as unknown as ConversationWithDetails));
+      .then(({ data, error }) => {
+        if (error) {
+          Alert.alert('Could not load conversation', error.message);
+          return;
+        }
+        setConversation(data as unknown as ConversationWithDetails);
+      });
   }, [id]);
 
   const other = conversation ? (conversation.buyer_id === session?.user.id ? conversation.seller : conversation.buyer) : null;

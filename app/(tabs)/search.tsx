@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ListingCard } from '../../src/components/ListingCard';
@@ -39,6 +39,7 @@ export default function Search() {
     input: { flex: 1, marginLeft: spacing.sm, fontSize: 15, color: colors.text },
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
     row: { justifyContent: 'space-between' as const },
+    loading: { marginTop: spacing.xl },
   }));
 
   return (
@@ -64,13 +65,15 @@ export default function Search() {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => <ListingCard listing={item} />}
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loading} />
+          ) : (
             <EmptyState
               icon="search-outline"
               title={query ? `No results for "${query}"` : 'Search Vatexs'}
               subtitle={query ? 'Try a different keyword.' : 'Find fashion, tech, home goods and more.'}
             />
-          ) : null
+          )
         }
       />
     </SafeAreaView>
