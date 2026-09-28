@@ -1,5 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
+import { callerHasAal2 } from '../_shared/aal.ts';
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -13,6 +14,9 @@ export default {
     const { data: adminProfile } = await ctx.supabaseAdmin.from('profiles').select('is_admin').eq('id', adminId).single();
     if (!adminProfile?.is_admin) {
       return Response.json({ error: 'Only admins can send broadcasts' }, { status: 403 });
+    }
+    if (!callerHasAal2(req)) {
+      return Response.json({ error: 'Two-factor authentication required for this action. Sign in through the admin portal and complete the code challenge.' }, { status: 403 });
     }
 
     const { title, body } = await req.json();

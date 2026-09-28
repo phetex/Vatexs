@@ -2,6 +2,7 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { sendUserNotification } from '../_shared/resend.ts';
 import { sendPushToUser } from '../_shared/push.ts';
+import { callerHasAal2 } from '../_shared/aal.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -20,6 +21,9 @@ export default {
 
     if (!callerProfile?.is_admin) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
+    }
+    if (!callerHasAal2(req)) {
+      return Response.json({ error: 'Two-factor authentication required for this action. Sign in through the admin portal and complete the code challenge.' }, { status: 403 });
     }
 
     const { data: ticket, error: updateError } = await ctx.supabaseAdmin
