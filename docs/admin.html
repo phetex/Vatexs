@@ -193,6 +193,26 @@
     <button class="btn btn-primary" style="width:100%;" id="forgot-btn">Send reset link</button>
     <p class="hint"><a href="#" id="show-signin-from-forgot">Back to sign in</a></p>
   </div>
+
+  <div id="auth-mfa-challenge" style="display:none; text-align:left;">
+    <p class="hint" style="margin-bottom:12px;">Enter the 6-digit code from your authenticator app.</p>
+    <div id="mfa-challenge-error" class="login-error"></div>
+    <input id="mfa-challenge-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" style="text-align:center; letter-spacing:4px; font-size:20px;">
+    <button class="btn btn-primary" style="width:100%; margin-top:12px;" id="mfa-challenge-btn">Verify</button>
+    <p class="hint"><a href="#" id="mfa-challenge-signout">Sign in with a different account</a></p>
+  </div>
+
+  <div id="auth-mfa-enroll" style="display:none; text-align:left;">
+    <p class="hint" style="margin-bottom:12px;">
+      Admin accounts require two-factor authentication. Scan this QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code it shows.
+    </p>
+    <div id="mfa-enroll-error" class="login-error"></div>
+    <div id="mfa-enroll-qr" style="display:flex; justify-content:center; margin-bottom:12px;"></div>
+    <p class="hint" style="text-align:center; word-break:break-all;">Can't scan? Enter this key manually: <code id="mfa-enroll-secret"></code></p>
+    <input id="mfa-enroll-code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" style="text-align:center; letter-spacing:4px; font-size:20px;">
+    <button class="btn btn-primary" style="width:100%; margin-top:12px;" id="mfa-enroll-btn">Verify &amp; enable</button>
+    <p class="hint"><a href="#" id="mfa-enroll-signout">Sign in with a different account</a></p>
+  </div>
 </div>
 
 <div class="admin-shell" id="admin-shell">
@@ -431,8 +451,54 @@
       await supabase.auth.signOut();
       return showLogin();
     }
+
+    // Admin accounts require 2FA. AAL (Authenticator Assurance Level) tells us
+    // whether a verified TOTP factor exists and, if so, whether this session
+    // has actually passed the code challenge yet.
+    const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalError) { document.getElementById('login-error').textContent = aalError.message; return showLogin(); }
+
+    if (aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+      return showMfaChallenge();
+    }
+    if (aal.nextLevel !== 'aal2') {
+      // No verified factor enrolled yet — admins must set one up before entering.
+      return showMfaEnroll();
+    }
     showAdmin();
   }
+
+  async function showMfaChallenge() {
+    document.getElementById('login-view').style.display = 'block';
+    document.getElementById('admin-shell').classList.remove('active');
+    showAuthView('mfa-challenge');
+    document.getElementById('mfa-challenge-code').value = '';
+    document.getElementById('mfa-challenge-error').textContent = '';
+  }
+
+  async function showMfaEnroll() {
+    document.getElementById('login-view').style.display = 'block';
+    document.getElementById('admin-shell').classList.remove('active');
+    showAuthView('mfa-enroll');
+    const errEl = document.getElementById('mfa-enroll-error');
+    errEl.textContent = '';
+    document.getElementById('mfa-enroll-code').value = '';
+
+    // A half-finished enrollment from a previous attempt blocks starting a new
+    // one — clean those up first so this always starts fresh.
+    const { data: existing } = await supabase.auth.mfa.listFactors();
+    for (const f of (existing?.all || [])) {
+      if (f.status === 'unverified') await supabase.auth.mfa.unenroll({ factorId: f.id });
+    }
+
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+    if (error) { errEl.textContent = error.message; return; }
+    currentEnrollFactorId = data.id;
+    document.getElementById('mfa-enroll-qr').innerHTML = data.totp.qr_code;
+    document.getElementById('mfa-enroll-secret').textContent = data.totp.secret;
+  }
+
+  let currentEnrollFactorId = null;
 
   function showLogin() {
     document.getElementById('login-view').style.display = 'block';
@@ -479,12 +545,65 @@
     showLogin();
   });
 
-  // ---------- Sign up / Forgot password view toggles ----------
+  // ---------- Sign up / Forgot password / MFA view toggles ----------
   function showAuthView(view) {
     document.getElementById('auth-signin').style.display = view === 'signin' ? 'block' : 'none';
     document.getElementById('auth-signup').style.display = view === 'signup' ? 'block' : 'none';
     document.getElementById('auth-forgot').style.display = view === 'forgot' ? 'block' : 'none';
+    document.getElementById('auth-mfa-challenge').style.display = view === 'mfa-challenge' ? 'block' : 'none';
+    document.getElementById('auth-mfa-enroll').style.display = view === 'mfa-enroll' ? 'block' : 'none';
   }
+
+  async function signOutToSwitchAccount(e) {
+    e.preventDefault();
+    await supabase.auth.signOut();
+    showLogin();
+  }
+  document.getElementById('mfa-challenge-signout').addEventListener('click', signOutToSwitchAccount);
+  document.getElementById('mfa-enroll-signout').addEventListener('click', signOutToSwitchAccount);
+
+  document.getElementById('mfa-challenge-btn').addEventListener('click', async () => {
+    const code = document.getElementById('mfa-challenge-code').value.trim();
+    const errEl = document.getElementById('mfa-challenge-error');
+    errEl.textContent = '';
+    if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Enter the 6-digit code.'; return; }
+
+    const { data: factors, error: listError } = await supabase.auth.mfa.listFactors();
+    if (listError) { errEl.textContent = listError.message; return; }
+    const factor = (factors?.totp || [])[0];
+    if (!factor) { errEl.textContent = 'No authenticator found on this account.'; return; }
+
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+    if (challengeError) { errEl.textContent = challengeError.message; return; }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code });
+    if (verifyError) { errEl.textContent = verifyError.message; return; }
+    checkSession();
+  });
+
+  document.getElementById('mfa-challenge-code').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('mfa-challenge-btn').click();
+  });
+
+  document.getElementById('mfa-enroll-btn').addEventListener('click', async () => {
+    const code = document.getElementById('mfa-enroll-code').value.trim();
+    const errEl = document.getElementById('mfa-enroll-error');
+    errEl.textContent = '';
+    if (!currentEnrollFactorId) { errEl.textContent = 'Could not start enrollment — try reloading the page.'; return; }
+    if (!/^\d{6}$/.test(code)) { errEl.textContent = 'Enter the 6-digit code.'; return; }
+
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: currentEnrollFactorId });
+    if (challengeError) { errEl.textContent = challengeError.message; return; }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: currentEnrollFactorId, challengeId: challenge.id, code });
+    if (verifyError) { errEl.textContent = verifyError.message; return; }
+    currentEnrollFactorId = null;
+    checkSession();
+  });
+
+  document.getElementById('mfa-enroll-code').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('mfa-enroll-btn').click();
+  });
 
   document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); showAuthView('signup'); });
   document.getElementById('show-forgot').addEventListener('click', (e) => { e.preventDefault(); showAuthView('forgot'); });
