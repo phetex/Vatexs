@@ -476,6 +476,8 @@
     document.getElementById('mfa-challenge-error').textContent = '';
   }
 
+  const MFA_ENROLL_CACHE_KEY = 'vatexs_mfa_enroll_pending';
+
   async function showMfaEnroll() {
     document.getElementById('login-view').style.display = 'block';
     document.getElementById('admin-shell').classList.remove('active');
@@ -484,18 +486,33 @@
     errEl.textContent = '';
     document.getElementById('mfa-enroll-code').value = '';
 
-    // A half-finished enrollment from a previous attempt blocks starting a new
-    // one — clean those up first so this always starts fresh.
     const { data: existing } = await supabase.auth.mfa.listFactors();
-    for (const f of (existing?.all || [])) {
-      if (f.status === 'unverified') await supabase.auth.mfa.unenroll({ factorId: f.id });
+    const unverified = (existing?.all || []).filter((f) => f.status === 'unverified');
+
+    // Reuse an in-progress enrollment if the page was reloaded mid-setup —
+    // starting a fresh one here would generate a new secret that no longer
+    // matches whatever the user already scanned or typed into their app.
+    let cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem(MFA_ENROLL_CACHE_KEY) || 'null'); } catch {}
+    const stillPending = cached && unverified.some((f) => f.id === cached.factorId);
+
+    if (stillPending) {
+      currentEnrollFactorId = cached.factorId;
+      document.getElementById('mfa-enroll-qr').innerHTML = cached.qr;
+      document.getElementById('mfa-enroll-secret').textContent = cached.secret;
+      return;
     }
+
+    // No usable in-progress factor — clear out any stale ones and start clean.
+    for (const f of unverified) await supabase.auth.mfa.unenroll({ factorId: f.id });
+    sessionStorage.removeItem(MFA_ENROLL_CACHE_KEY);
 
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
     if (error) { errEl.textContent = error.message; return; }
     currentEnrollFactorId = data.id;
     document.getElementById('mfa-enroll-qr').innerHTML = data.totp.qr_code;
     document.getElementById('mfa-enroll-secret').textContent = data.totp.secret;
+    sessionStorage.setItem(MFA_ENROLL_CACHE_KEY, JSON.stringify({ factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret }));
   }
 
   let currentEnrollFactorId = null;
@@ -598,6 +615,7 @@
     const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: currentEnrollFactorId, challengeId: challenge.id, code });
     if (verifyError) { errEl.textContent = verifyError.message; return; }
     currentEnrollFactorId = null;
+    sessionStorage.removeItem(MFA_ENROLL_CACHE_KEY);
     checkSession();
   });
 
