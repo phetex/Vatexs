@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { CategoryChip } from '../../src/components/CategoryChip';
 import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useListings } from '../../src/hooks/useListings';
+import { useNotifications } from '../../src/hooks/useNotifications';
 import { useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
@@ -14,15 +17,37 @@ import { spacing } from '../../src/theme/colors';
 export default function Home() {
   useTrackScreen('home');
   const { colors } = useTheme();
+  const router = useRouter();
   const { profile } = useAuth();
   const { categories } = useCategories();
+  const { unreadCount } = useNotifications();
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const { listings, loading, refreshing, refresh } = useListings({ categoryId });
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
-    header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-start' as const,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+    },
     brand: { fontSize: 26, fontWeight: '800' as const, color: colors.text, letterSpacing: -0.8 },
     greeting: { marginTop: 3, fontSize: 14, color: colors.textMuted, marginBottom: spacing.lg },
+    bellButton: { padding: spacing.xs, position: 'relative' as const },
+    bellBadge: {
+      position: 'absolute' as const,
+      top: 2,
+      right: 2,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.accent,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingHorizontal: 3,
+    },
+    bellBadgeText: { fontSize: 10, fontWeight: '800' as const, color: colors.white },
     chipRow: { marginBottom: spacing.lg },
     chipRowContent: { paddingHorizontal: spacing.lg },
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
@@ -55,8 +80,18 @@ export default function Home() {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Text style={styles.brand}>Vatexs</Text>
-              <Text style={styles.greeting}>{firstName ? `Hi ${firstName}, find something great.` : 'Find something great.'}</Text>
+              <View>
+                <Text style={styles.brand}>Vatexs</Text>
+                <Text style={styles.greeting}>{firstName ? `Hi ${firstName}, find something great.` : 'Find something great.'}</Text>
+              </View>
+              <Pressable style={styles.bellButton} onPress={() => router.push('/notifications')} hitSlop={8}>
+                <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                {unreadCount > 0 ? (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                ) : null}
+              </Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow} contentContainerStyle={styles.chipRowContent}>
               <CategoryChip label="All" active={categoryId === null} onPress={() => setCategoryId(null)} />

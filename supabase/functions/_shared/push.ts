@@ -7,6 +7,15 @@ export async function sendPushToUser(
   body: string,
   data?: Record<string, unknown>
 ) {
+  // Persist as an in-app notification regardless of whether a push token
+  // exists, so it's still there in the inbox for users who missed the push
+  // or never enabled notifications. Best-effort — must never block the send.
+  try {
+    await supabaseAdmin.from('notifications').insert({ user_id: userId, title, body, data: data ?? {} });
+  } catch {
+    // ignore
+  }
+
   const { data: tokens } = await supabaseAdmin.from('push_tokens').select('token').eq('user_id', userId);
   if (!tokens || tokens.length === 0) return;
 

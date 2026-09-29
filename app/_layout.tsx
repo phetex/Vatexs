@@ -70,6 +70,7 @@ function RootNavigator() {
           <Stack.Screen name="guide" options={{ headerShown: true, title: 'Your guide to Vatexs' }} />
           <Stack.Screen name="balance" options={{ headerShown: true, title: 'Balance' }} />
           <Stack.Screen name="referrals" options={{ headerShown: true, title: 'Refer & earn' }} />
+          <Stack.Screen name="notifications" options={{ headerShown: true, title: 'Notifications' }} />
           <Stack.Screen name="promotions" options={{ headerShown: true, title: 'Promotional tools' }} />
           <Stack.Screen name="legal" options={{ headerShown: true, title: 'Legal information' }} />
           <Stack.Screen name="about" options={{ headerShown: true, title: 'About Vatexs' }} />

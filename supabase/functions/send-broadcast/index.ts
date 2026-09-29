@@ -24,6 +24,20 @@ export default {
       return Response.json({ error: 'title and body are required' }, { status: 400 });
     }
 
+    // Broadcasts go to every user's in-app inbox, not just those with a
+    // push token enabled — a token only decides whether they also get an
+    // OS-level alert.
+    const { data: allProfiles } = await ctx.supabaseAdmin.from('profiles').select('id');
+    const notificationRows = (allProfiles ?? []).map((p: { id: string }) => ({
+      user_id: p.id,
+      title: title.trim(),
+      body: body.trim(),
+      data: { type: 'broadcast' },
+    }));
+    for (const batch of chunk(notificationRows, 500)) {
+      await ctx.supabaseAdmin.from('notifications').insert(batch);
+    }
+
     const { data: tokenRows } = await ctx.supabaseAdmin.from('push_tokens').select('token');
     const tokens = [...new Set((tokenRows ?? []).map((t: { token: string }) => t.token))];
 
