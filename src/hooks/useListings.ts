@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { fetchBlockedIds, useBlockVersion } from '../lib/blocklist';
 import type { ListingWithDetails } from '../types/database';
 
 const LISTING_SELECT = `
@@ -20,6 +22,9 @@ interface UseListingsOptions {
 }
 
 export function useListings({ categoryId, search, sellerId }: UseListingsOptions = {}) {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const blockVersion = useBlockVersion();
   const [listings, setListings] = useState<ListingWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,13 +46,18 @@ export function useListings({ categoryId, search, sellerId }: UseListingsOptions
       if (categoryId) query = query.eq('category_id', categoryId);
       if (search) query = query.ilike('title', `%${search}%`);
 
-      const { data, error: err } = await query;
+      const [{ data, error: err }, blockedIds] = await Promise.all([
+        query,
+        !sellerId && userId ? fetchBlockedIds(userId) : Promise.resolve(new Set<string>()),
+      ]);
       if (err) setError(err.message);
       else {
         let rows = (data as unknown as ListingWithDetails[]) ?? [];
         // Sellers in holiday mode stay hidden from public browsing, but a
         // seller viewing their own listings should still see everything.
         if (!sellerId) rows = rows.filter((l) => !l.profiles?.holiday_mode);
+        // Content from users the viewer has blocked is removed from their feed.
+        if (blockedIds.size > 0) rows = rows.filter((l) => !blockedIds.has(l.seller_id));
         // Boosted listings (Promotional tools) sort first while still active.
         if (!sellerId) {
           rows = [...rows].sort((a, b) => Number(isListingFeatured(b)) - Number(isListingFeatured(a)));
@@ -57,7 +67,7 @@ export function useListings({ categoryId, search, sellerId }: UseListingsOptions
       }
       isRefresh ? setRefreshing(false) : setLoading(false);
     },
-    [categoryId, search, sellerId]
+    [categoryId, search, sellerId, userId, blockVersion]
   );
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
+import { SignInPrompt } from '../../src/components/SignInPrompt';
 import { useAuth } from '../../src/context/AuthContext';
 import { useListings } from '../../src/hooks/useListings';
 import { useTrackScreen } from '../../src/lib/analytics';
@@ -12,6 +13,14 @@ import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Profile() {
+  const { session } = useAuth();
+  if (!session) {
+    return <SignInPrompt icon="person-circle-outline" title="Your Vatexs profile" subtitle="Sign in to manage your listings, orders and settings." />;
+  }
+  return <ProfileScreen />;
+}
+
+function ProfileScreen() {
   useTrackScreen('profile');
   const { colors } = useTheme();
   const { session, profile, signOut } = useAuth();

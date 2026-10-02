@@ -224,6 +224,7 @@
     <nav>
       <button class="admin-nav-item active" data-panel="overview">Overview</button>
       <button class="admin-nav-item" data-panel="tickets">Tickets</button>
+      <button class="admin-nav-item" data-panel="reports">Reports <span class="pill open" id="reports-badge" style="display:none;margin-left:6px;"></span></button>
       <button class="admin-nav-item" data-panel="orders">Orders</button>
       <button class="admin-nav-item" data-panel="appointments">Appointments</button>
       <button class="admin-nav-item" data-panel="conversations">Conversations</button>
@@ -243,12 +244,27 @@
         <div class="stat-card"><div class="num">—</div><div class="label">Total orders</div></div>
         <div class="stat-card"><div class="num">—</div><div class="label">Listings</div></div>
         <div class="stat-card"><div class="num">—</div><div class="label">Users</div></div>
+        <div class="stat-card"><div class="num">—</div><div class="label">Open reports</div></div>
       </div>
     </section>
 
     <section class="admin-panel" id="panel-tickets">
       <h1>Tickets</h1>
       <div id="tickets-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-reports">
+      <div class="panel-head">
+        <h1>Reports</h1>
+        <div>
+          <button class="btn btn-primary" id="reports-filter-open">Open</button>
+          <button class="btn btn-outline" id="reports-filter-closed">Resolved</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 20px;">
+        User reports and blocks on listings, messages and accounts. Review within 24 hours: remove the content, ban the user, or dismiss.
+      </p>
+      <div id="reports-list"></div>
     </section>
 
     <section class="admin-panel" id="panel-orders">
@@ -528,6 +544,7 @@
     document.getElementById('admin-shell').classList.add('active');
     loadOverview();
     loadTickets();
+    loadReports();
     loadOrders();
     loadAppointments();
     loadConversations();
@@ -670,18 +687,113 @@
 
   // ---------- Overview ----------
   async function loadOverview() {
-    const [{ count: openTickets }, { count: orderCount }, { count: listingCount }, { count: userCount }] = await Promise.all([
+    const [{ count: openTickets }, { count: orderCount }, { count: listingCount }, { count: userCount }, { count: openReports }] = await Promise.all([
       supabase.from('support_tickets').select('id', { count: 'exact', head: true }).in('status', ['open', 'in_review']),
       supabase.from('orders').select('id', { count: 'exact', head: true }),
       supabase.from('listings').select('id', { count: 'exact', head: true }),
       supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ]);
     const cards = document.querySelectorAll('#stat-grid .stat-card .num');
     cards[0].textContent = openTickets ?? 0;
     cards[1].textContent = orderCount ?? 0;
     cards[2].textContent = listingCount ?? 0;
     cards[3].textContent = userCount ?? 0;
+    cards[4].textContent = openReports ?? 0;
   }
+
+  // ---------- Reports (content moderation) ----------
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  let reportsFilter = 'open';
+
+  function setReportsFilter(filter) {
+    reportsFilter = filter;
+    document.getElementById('reports-filter-open').className = 'btn ' + (filter === 'open' ? 'btn-primary' : 'btn-outline');
+    document.getElementById('reports-filter-closed').className = 'btn ' + (filter === 'closed' ? 'btn-primary' : 'btn-outline');
+    loadReports();
+  }
+  document.getElementById('reports-filter-open').addEventListener('click', () => setReportsFilter('open'));
+  document.getElementById('reports-filter-closed').addEventListener('click', () => setReportsFilter('closed'));
+
+  function reportContentPreview(r) {
+    const s = r.snapshot || {};
+    if (r.target_type === 'listing') {
+      return `<b>Listing:</b> ${escapeHtml(s.title)}${s.price != null ? ' · ' + escapeHtml(fmtMoney(s.price, s.currency)) : ''}<br>${escapeHtml(s.description)}`;
+    }
+    if (r.target_type === 'message') return `<b>Message:</b> ${escapeHtml(s.body)}`;
+    return `<b>User account:</b> ${escapeHtml(s.full_name || r.offender?.full_name || 'Vatexs user')}`;
+  }
+
+  async function loadReports() {
+    const list = document.getElementById('reports-list');
+    let query = supabase
+      .from('reports')
+      .select('*, reporter:profiles!reports_reporter_id_fkey(full_name), offender:profiles!reports_reported_user_id_fkey(id,full_name,banned_at)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    query = reportsFilter === 'open' ? query.eq('status', 'open') : query.neq('status', 'open');
+    const { data: reports, error } = await query;
+
+    const { count: openCount } = await supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open');
+    const badge = document.getElementById('reports-badge');
+    badge.textContent = openCount || '';
+    badge.style.display = openCount ? 'inline-block' : 'none';
+
+    list.innerHTML = '';
+    if (error) { list.innerHTML = `<p class="hint">Could not load reports: ${escapeHtml(error.message)}</p>`; return; }
+    if (!reports || reports.length === 0) {
+      list.innerHTML = `<p class="hint">${reportsFilter === 'open' ? 'No open reports. 🎉' : 'No resolved reports yet.'}</p>`;
+      return;
+    }
+    reports.forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      const isOpen = r.status === 'open';
+      const banned = !!r.offender?.banned_at;
+      const actions = isOpen
+        ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+             ${r.target_type !== 'user' ? `<button class="btn btn-outline" data-report="${escapeHtml(r.id)}" data-action="remove_content">Remove content</button>` : ''}
+             <button class="btn btn-danger" data-report="${escapeHtml(r.id)}" data-action="ban_user">${r.target_type !== 'user' ? 'Remove content &amp; ban user' : 'Ban user'}</button>
+             <button class="btn btn-outline" data-report="${escapeHtml(r.id)}" data-action="dismiss">Dismiss</button>
+           </div>`
+        : `<div class="list-item-meta">${escapeHtml(r.status)}${r.resolved_at ? ' · ' + timeAgo(r.resolved_at) : ''}${r.resolution_note ? ' · ' + escapeHtml(r.resolution_note) : ''}</div>`;
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${escapeHtml(r.reason)} <span class="list-item-meta">· ${escapeHtml(r.target_type)}</span></div>
+          <span class="pill ${isOpen ? 'open' : 'resolved'}">${escapeHtml(r.status)}</span>
+        </div>
+        <div class="list-item-meta">
+          Reported user: ${escapeHtml(r.offender?.full_name || 'Vatexs user')}${banned ? ' <span class="pill closed">Banned</span>' : ''}
+          · By ${escapeHtml(r.reporter?.full_name || 'a Vatexs user')} · ${timeAgo(r.created_at)}
+        </div>
+        <div class="list-item-preview">${reportContentPreview(r)}</div>
+        ${r.details ? `<div class="list-item-preview"><i>"${escapeHtml(r.details)}"</i></div>` : ''}
+        ${actions}
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  document.getElementById('reports-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-report]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'ban_user' && !confirm('Ban this user? They will be signed out, unable to sign in again, and all their active listings will be hidden.')) return;
+    const note = action === 'dismiss' ? '' : (prompt('Note for the record (optional):') || '');
+
+    btn.disabled = true;
+    const { data, error } = await supabase.functions.invoke('moderate-content', { body: { report_id: btn.dataset.report, action, note } });
+    if (error || data?.error) {
+      alert(await functionErrorMessage(error, data, 'Could not complete that action.'));
+      btn.disabled = false;
+      return;
+    }
+    loadReports();
+    loadOverview();
+  });
 
   // ---------- Tickets ----------
   async function loadTickets() {

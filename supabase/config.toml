@@ -463,5 +463,11 @@ verify_jwt = true
 [functions.send-broadcast]
 verify_jwt = true
 
+[functions.report-content]
+verify_jwt = true
+
+[functions.moderate-content]
+verify_jwt = true
+
 [functions.assistant-chat]
 verify_jwt = false

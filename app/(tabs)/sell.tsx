@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { CategoryChip } from '../../src/components/CategoryChip';
+import { SignInPrompt } from '../../src/components/SignInPrompt';
 import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { supabase } from '../../src/lib/supabase';
@@ -28,6 +29,14 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 const MAX_IMAGES = 6;
 
 export default function Sell() {
+  const { session } = useAuth();
+  if (!session) {
+    return <SignInPrompt icon="add-circle-outline" title="Sell on Vatexs" subtitle="Sign in to list your first item and start earning." />;
+  }
+  return <SellScreen />;
+}
+
+function SellScreen() {
   useTrackScreen('sell');
   const { colors } = useTheme();
   const { session, profile } = useAuth();

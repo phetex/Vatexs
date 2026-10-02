@@ -21,6 +21,11 @@ export default {
       return Response.json({ error: 'You are not part of this conversation' }, { status: 403 });
     }
 
+    const { data: senderStatus } = await ctx.supabaseAdmin.from('profiles').select('banned_at').eq('id', senderId).single();
+    if (senderStatus?.banned_at) {
+      return Response.json({ error: 'Your account has been removed for violating the Vatexs Terms.' }, { status: 403 });
+    }
+
     const otherId = conversation.buyer_id === senderId ? conversation.seller_id : conversation.buyer_id;
     const { count: blockCount } = await ctx.supabaseAdmin
       .from('blocked_users')
@@ -37,6 +42,9 @@ export default {
       .select('id, created_at')
       .single();
 
+    if (insertError?.hint === 'objectionable_content') {
+      return Response.json({ error: insertError.message }, { status: 400 });
+    }
     if (insertError || !message) {
       return Response.json({ error: insertError?.message ?? 'Could not send message' }, { status: 500 });
     }

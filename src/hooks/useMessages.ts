@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { functionErrorMessage } from '../lib/functionError';
 import type { Message } from '../types/database';
 
 export function useMessages(conversationId: string) {
@@ -37,10 +38,10 @@ export function useMessages(conversationId: string) {
   }, [conversationId]);
 
   const sendMessage = async (_senderId: string, body: string) => {
-    const { error } = await supabase.functions.invoke('send-message', {
+    const { data, error } = await supabase.functions.invoke('send-message', {
       body: { conversation_id: conversationId, body },
     });
-    if (error) throw error;
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data, 'Could not send message.'));
   };
 
   return { messages, loading, sendMessage };

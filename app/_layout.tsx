@@ -51,12 +51,15 @@ function RootNavigator() {
           headerTintColor: colors.text,
         }}
       >
+        {/* Browsing is open to guests (App Store guideline 5.1.1): sign-in is only
+            required for account-based actions — selling, messaging, buying, profile. */}
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="listing/[id]"
+          options={{ headerShown: true, title: '', headerTransparent: true, headerTintColor: colors.white }}
+        />
+
         <Stack.Protected guard={!!session}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="listing/[id]"
-            options={{ headerShown: true, title: '', headerTransparent: true, headerTintColor: colors.white }}
-          />
           <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile', presentation: 'modal' }} />
           <Stack.Screen name="payout-setup" options={{ headerShown: true, title: 'Payout account', presentation: 'modal' }} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Switch, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
@@ -8,6 +8,8 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Button } from '../../src/components/Button';
 import { EmptyState } from '../../src/components/EmptyState';
+import { ReportModal } from '../../src/components/ReportModal';
+import { blockUser } from '../../src/lib/blocklist';
 import { useAuth } from '../../src/context/AuthContext';
 import { fetchListing } from '../../src/hooks/useListings';
 import { useFavorite } from '../../src/hooks/useFavorite';
@@ -37,6 +39,8 @@ export default function ListingDetail() {
   const { colors } = useTheme();
   const { session, profile } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
+  const [reportOpen, setReportOpen] = useState(false);
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -81,6 +85,7 @@ export default function ListingDetail() {
     body: { padding: spacing.lg },
     titleRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const },
     favoriteButton: { padding: spacing.xs },
+    menuButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center' as const, justifyContent: 'center' as const },
     price: { fontSize: 26, fontWeight: '800' as const, color: colors.text },
     title: { fontSize: 16, color: colors.text, marginTop: 2 },
     metaRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, marginTop: spacing.md, gap: spacing.md },
@@ -128,8 +133,57 @@ export default function ListingDetail() {
 
   const isOwner = listing && session?.user.id === listing.seller_id;
 
-  const onMessageSeller = async () => {
+  // Browsing is open to guests; account-based actions send them to sign in first.
+  const requireAuth = () => {
+    if (session) return true;
+    router.push('/(auth)/sign-in');
+    return false;
+  };
+
+  const onBlockSeller = () => {
     if (!listing || !session) return;
+    const sellerName = listing.profiles?.full_name || 'this seller';
+    Alert.alert(`Block ${sellerName}?`, "Their listings will disappear from your feed and you won't be able to message each other. You can undo this in Settings.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: async () => {
+          const message = await blockUser(session.user.id, listing.seller_id);
+          if (message) {
+            Alert.alert('Could not block user', message);
+            return;
+          }
+          Alert.alert('User blocked', `${sellerName} has been blocked and reported to our moderation team.`);
+          router.back();
+        },
+      },
+    ]);
+  };
+
+  const onListingMenu = () => {
+    Alert.alert('Listing options', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Report listing', onPress: () => requireAuth() && setReportOpen(true) },
+      { text: 'Block seller', style: 'destructive', onPress: () => requireAuth() && onBlockSeller() },
+    ]);
+  };
+
+  const showMenu = !!listing && !isOwner;
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: showMenu
+        ? () => (
+            <Pressable onPress={onListingMenu} hitSlop={12} style={styles.menuButton}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+            </Pressable>
+          )
+        : undefined,
+    });
+  }, [showMenu, session, listing?.id]);
+
+  const onMessageSeller = async () => {
+    if (!listing || !requireAuth() || !session) return;
     setBusy(true);
     try {
       const conversationId = await findOrCreateConversation(listing.id, session.user.id, listing.seller_id);
@@ -142,7 +196,7 @@ export default function ListingDetail() {
   };
 
   const onBuyNow = async () => {
-    if (!listing) return;
+    if (!listing || !requireAuth()) return;
     trackEvent('buy_initiated', { category_id: listing.category_id, currency: listing.currency });
     setPaying(true);
     try {
@@ -264,7 +318,7 @@ export default function ListingDetail() {
               <Text style={styles.title}>{listing.title}</Text>
             </View>
             {!isOwner ? (
-              <Pressable onPress={toggle} style={styles.favoriteButton} hitSlop={12}>
+              <Pressable onPress={() => requireAuth() && toggle()} style={styles.favoriteButton} hitSlop={12}>
                 <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={24} color={isFavorite ? colors.accent : colors.textMuted} />
               </Pressable>
             ) : null}
@@ -351,6 +405,8 @@ export default function ListingDetail() {
           <Button title="Message seller" onPress={onMessageSeller} loading={busy} disabled={listing.status === 'sold'} />
         )}
       </SafeAreaView>
+
+      <ReportModal visible={reportOpen} onClose={() => setReportOpen(false)} targetType="listing" targetId={listing.id} title="Report listing" />
     </View>
   );
 }

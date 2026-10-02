@@ -18,7 +18,7 @@ export default function Home() {
   useTrackScreen('home');
   const { colors } = useTheme();
   const router = useRouter();
-  const { profile } = useAuth();
+  const { session, profile } = useAuth();
   const { categories } = useCategories();
   const { unreadCount } = useNotifications();
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -48,6 +48,8 @@ export default function Home() {
       paddingHorizontal: 3,
     },
     bellBadgeText: { fontSize: 10, fontWeight: '800' as const, color: colors.white },
+    signInPill: { backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 999 },
+    signInPillText: { color: colors.white, fontSize: 13, fontWeight: '700' as const },
     chipRow: { marginBottom: spacing.lg },
     chipRowContent: { paddingHorizontal: spacing.lg },
     listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
@@ -84,14 +86,20 @@ export default function Home() {
                 <Text style={styles.brand}>Vatexs</Text>
                 <Text style={styles.greeting}>{firstName ? `Hi ${firstName}, find something great.` : 'Find something great.'}</Text>
               </View>
-              <Pressable style={styles.bellButton} onPress={() => router.push('/notifications')} hitSlop={8}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text} />
-                {unreadCount > 0 ? (
-                  <View style={styles.bellBadge}>
-                    <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                  </View>
-                ) : null}
-              </Pressable>
+              {session ? (
+                <Pressable style={styles.bellButton} onPress={() => router.push('/notifications')} hitSlop={8}>
+                  <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                  {unreadCount > 0 ? (
+                    <View style={styles.bellBadge}>
+                      <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              ) : (
+                <Pressable style={styles.signInPill} onPress={() => router.push('/(auth)/sign-in')} hitSlop={8}>
+                  <Text style={styles.signInPillText}>Sign in</Text>
+                </Pressable>
+              )}
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow} contentContainerStyle={styles.chipRowContent}>
               <CategoryChip label="All" active={categoryId === null} onPress={() => setCategoryId(null)} />

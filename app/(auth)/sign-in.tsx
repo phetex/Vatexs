@@ -23,6 +23,7 @@ export default function SignIn() {
     form: { marginTop: spacing.md },
     error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
     forgotLink: { color: colors.primary, fontSize: 13, fontWeight: '600' as const, textAlign: 'center' as const, marginTop: spacing.md },
+    browseLink: { color: colors.textMuted, fontSize: 13, fontWeight: '600' as const, textAlign: 'center' as const, marginTop: spacing.md },
     footer: { flexDirection: 'row' as const, justifyContent: 'center' as const, marginTop: spacing.lg },
     footerText: { color: colors.textMuted, fontSize: 14 },
     link: { color: colors.primary, fontSize: 14, fontWeight: '700' as const },
@@ -67,6 +68,9 @@ export default function SignIn() {
             <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
               Forgot password?
             </Link>
+            <Text style={styles.browseLink} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}>
+              Continue browsing without an account
+            </Text>
           </View>
 
           <View style={styles.footer}>

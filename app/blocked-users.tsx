@@ -6,6 +6,7 @@ import { Button } from '../src/components/Button';
 import { EmptyState } from '../src/components/EmptyState';
 import { useAuth } from '../src/context/AuthContext';
 import { supabase } from '../src/lib/supabase';
+import { notifyBlocklistChanged } from '../src/lib/blocklist';
 import { useTheme, useThemedStyles } from '../src/context/ThemeContext';
 import { radius, spacing } from '../src/theme/colors';
 
@@ -49,6 +50,7 @@ export default function BlockedUsers() {
     if (!session) return;
     setUnblockingId(blockedId);
     await supabase.from('blocked_users').delete().eq('blocker_id', session.user.id).eq('blocked_id', blockedId);
+    notifyBlocklistChanged();
     setUnblockingId(null);
     load();
   };

@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { CountryPicker } from '../../src/components/CountryPicker';
 import { useAuth } from '../../src/context/AuthContext';
-import { useThemedStyles } from '../../src/context/ThemeContext';
+import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function SignUp() {
+  const { colors } = useTheme();
   const { signUp } = useAuth();
+  const [agreed, setAgreed] = useState(false);
   const router = useRouter();
   const { ref } = useLocalSearchParams<{ ref?: string }>();
   const [fullName, setFullName] = useState('');
@@ -30,6 +33,10 @@ export default function SignUp() {
     form: { marginTop: spacing.md },
     error: { color: colors.danger, fontSize: 13, marginBottom: spacing.md },
     notice: { color: colors.success, fontSize: 13, marginBottom: spacing.md },
+    agreeRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, marginBottom: spacing.md },
+    agreeText: { flex: 1, marginLeft: spacing.sm, fontSize: 13, color: colors.textMuted, lineHeight: 19 },
+    agreeLink: { color: colors.primary, fontWeight: '700' as const },
+    browseLink: { color: colors.textMuted, fontSize: 13, fontWeight: '600' as const, textAlign: 'center' as const, marginTop: spacing.md },
     footer: { flexDirection: 'row' as const, justifyContent: 'center' as const, marginTop: spacing.lg },
     footerText: { color: colors.textMuted, fontSize: 14 },
     link: { color: colors.primary, fontSize: 14, fontWeight: '700' as const },
@@ -44,6 +51,10 @@ export default function SignUp() {
     }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms of Service to create an account.');
       return;
     }
     setLoading(true);
@@ -99,14 +110,31 @@ export default function SignUp() {
               onChangeText={setReferralCode}
               placeholder="e.g. AB12CD34"
             />
+            <Pressable style={styles.agreeRow} onPress={() => setAgreed((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
+              <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={22} color={agreed ? colors.primary : colors.textFaint} />
+              <Text style={styles.agreeText}>
+                I agree to the{' '}
+                <Text style={styles.agreeLink} onPress={() => Linking.openURL('https://vatexs.store/terms.html')}>
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.agreeLink} onPress={() => Linking.openURL('https://vatexs.store/privacy.html')}>
+                  Privacy Policy
+                </Text>
+                . Vatexs has zero tolerance for objectionable content and abusive users — content can be reported, users can be blocked, and violators are removed.
+              </Text>
+            </Pressable>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
             <Button
               title="Create account"
               onPress={onSubmit}
               loading={loading}
-              disabled={!email || !password || !fullName || !confirmPassword}
+              disabled={!email || !password || !fullName || !confirmPassword || !agreed}
             />
+            <Text style={styles.browseLink} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}>
+              Continue browsing without an account
+            </Text>
           </View>
 
           <View style={styles.footer}>

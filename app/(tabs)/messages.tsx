@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { EmptyState } from '../../src/components/EmptyState';
+import { SignInPrompt } from '../../src/components/SignInPrompt';
 import { useAuth } from '../../src/context/AuthContext';
 import { useConversations } from '../../src/hooks/useConversations';
 import { timeAgo } from '../../src/lib/format';
@@ -11,6 +12,14 @@ import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Messages() {
+  const { session } = useAuth();
+  if (!session) {
+    return <SignInPrompt icon="chatbubbles-outline" title="Chat with buyers and sellers" subtitle="Sign in to message sellers and keep track of your conversations." />;
+  }
+  return <MessagesScreen />;
+}
+
+function MessagesScreen() {
   useTrackScreen('messages');
   const router = useRouter();
   const { colors } = useTheme();

@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { useMessages } from '../../src/hooks/useMessages';
+import { ReportModal } from '../../src/components/ReportModal';
+import { blockUser } from '../../src/lib/blocklist';
 import { supabase } from '../../src/lib/supabase';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
@@ -20,6 +22,7 @@ export default function Chat() {
   const [conversation, setConversation] = useState<ConversationWithDetails | null>(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [report, setReport] = useState<{ type: 'user' | 'message'; id: string; title: string } | null>(null);
   const listRef = useRef<FlatList>(null);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
@@ -87,16 +90,16 @@ export default function Chat() {
     if (!other || !session) return;
     Alert.alert(
       `Block ${other.full_name || 'this user'}?`,
-      "You won't be able to message each other any more. You can undo this later from Settings.",
+      "You won't be able to message each other any more, and their listings will disappear from your feed. The user is also reported to our moderation team. You can undo this later from Settings.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Block',
           style: 'destructive',
           onPress: async () => {
-            const { error } = await supabase.from('blocked_users').insert({ blocker_id: session.user.id, blocked_id: other.id });
-            if (error) {
-              Alert.alert('Could not block user', error.message);
+            const message = await blockUser(session.user.id, other.id);
+            if (message) {
+              Alert.alert('Could not block user', message);
               return;
             }
             router.back();
@@ -110,7 +113,15 @@ export default function Chat() {
     if (!other) return;
     Alert.alert(other.full_name || 'Chat', undefined, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Report a problem', onPress: () => router.push('/new-ticket') },
+      { text: 'Report user', onPress: () => setReport({ type: 'user', id: other.id, title: 'Report user' }) },
+      { text: 'Block user', style: 'destructive', onPress: onBlock },
+    ]);
+  };
+
+  const onMessageLongPress = (messageId: string) => {
+    Alert.alert('Message options', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Report message', onPress: () => setReport({ type: 'message', id: messageId, title: 'Report message' }) },
       { text: 'Block user', style: 'destructive', onPress: onBlock },
     ]);
   };
@@ -135,6 +146,9 @@ export default function Chat() {
     try {
       await sendMessage(session.user.id, body);
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err: any) {
+      setDraft(body);
+      Alert.alert('Message not sent', err?.message ?? 'Please try again.');
     } finally {
       setSending(false);
     }
@@ -165,9 +179,13 @@ export default function Chat() {
             const mine = item.sender_id === session?.user.id;
             return (
               <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-                <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+                <Pressable
+                  style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}
+                  onLongPress={mine ? undefined : () => onMessageLongPress(item.id)}
+                  delayLongPress={350}
+                >
                   <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.body}</Text>
-                </View>
+                </Pressable>
               </View>
             );
           }}
@@ -187,6 +205,14 @@ export default function Chat() {
           <Ionicons name="arrow-up" size={20} color={colors.white} />
         </Pressable>
       </SafeAreaView>
+
+      <ReportModal
+        visible={!!report}
+        onClose={() => setReport(null)}
+        targetType={report?.type ?? 'user'}
+        targetId={report?.id ?? null}
+        title={report?.title}
+      />
     </KeyboardAvoidingView>
   );
 }
