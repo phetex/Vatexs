@@ -4,7 +4,7 @@
     "slug": "vatexs",
     "version": "1.0.0",
     "scheme": "vatexs",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -56,6 +56,15 @@
         {
           "icon": "./assets/android-icon-foreground.png",
           "color": "#5B4EFF"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],
