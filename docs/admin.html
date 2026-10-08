@@ -79,6 +79,11 @@
   .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; margin-bottom: 8px; font-size: 14px; }
   .msg-bubble.mine { background: var(--primary); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
   .msg-bubble.theirs { background: var(--surface); margin-right: auto; border-bottom-left-radius: 4px; }
+  .translate-link { display: block; background: none; border: none; padding: 0; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--primary); cursor: pointer; }
+  .translate-link:disabled { opacity: 0.6; cursor: default; }
+  .translation { margin-top: 6px; padding-left: 8px; border-left: 3px solid var(--primary); font-size: 12.5px; color: var(--text-muted); white-space: pre-wrap; }
+  .msg-bubble.mine .translate-link { color: #fff; }
+  .msg-bubble.mine .translation { color: rgba(255,255,255,0.92); border-left-color: rgba(255,255,255,0.6); }
   .msg-time { font-size: 10px; opacity: 0.7; margin-top: 4px; }
 
   .reply-row { display: flex; gap: 8px; }
@@ -350,6 +355,7 @@
       <div>
         <h2 id="ticket-modal-subject"></h2>
         <div class="list-item-meta" id="ticket-modal-meta"></div>
+        <button class="btn btn-outline" id="ticket-translate-all" style="padding:6px 10px;font-size:12px;margin-top:8px;">Translate all to English</button>
       </div>
       <button class="modal-close" id="ticket-modal-close">&times;</button>
     </div>
@@ -404,6 +410,7 @@
       <div>
         <h2 id="conversation-modal-title"></h2>
         <div class="list-item-meta" id="conversation-modal-meta"></div>
+        <button class="btn btn-outline" id="conversation-translate-all" style="padding:6px 10px;font-size:12px;margin-top:8px;">Translate all to English</button>
       </div>
       <button class="modal-close" id="conversation-modal-close">&times;</button>
     </div>
@@ -711,6 +718,72 @@
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // ---------- Translation (admin-only: text is sent for translation only when an admin clicks a button) ----------
+  const translationCache = new Map();
+
+  async function translateTexts(texts) {
+    const missing = [...new Set(texts.filter((t) => t && t.trim() && !translationCache.has(t)))];
+    for (let i = 0; i < missing.length; i += 25) {
+      const batch = missing.slice(i, i + 25);
+      const { data, error } = await supabase.functions.invoke('translate-text', { body: { texts: batch } });
+      if (error || data?.error) throw new Error(await functionErrorMessage(error, data, 'Could not translate.'));
+      batch.forEach((t, j) => translationCache.set(t, data.results[j]));
+    }
+    return texts.map((t) => translationCache.get(t) || null);
+  }
+
+  function renderTranslation(target, result) {
+    let box = target.querySelector(':scope > .translation');
+    if (!box) { box = document.createElement('div'); box.className = 'translation'; target.appendChild(box); }
+    if (!result) { box.textContent = ''; return; }
+    box.textContent = /^english$/i.test(result.language) ? 'Already in English.' : `Translated from ${result.language}: ${result.translation}`;
+  }
+
+  // Registers a piece of user text on a container so "Translate all" can translate it; optionally adds a per-item link.
+  function addTranslatable(container, target, text, { withLink = true } = {}) {
+    if (!text || !text.trim()) return;
+    const item = { target, text, link: null };
+    if (withLink) {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'translate-link';
+      link.textContent = 'Translate to English';
+      link.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        link.disabled = true;
+        link.textContent = 'Translating…';
+        try {
+          const [result] = await translateTexts([text]);
+          renderTranslation(target, result);
+          link.remove();
+        } catch (err) {
+          link.disabled = false;
+          link.textContent = 'Translate to English';
+          alert(err.message);
+        }
+      });
+      target.appendChild(link);
+      item.link = link;
+    }
+    (container._translatables ||= []).push(item);
+  }
+
+  async function translateAll(container, btn) {
+    const items = container._translatables || [];
+    if (items.length === 0) return;
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Translating…';
+    try {
+      const results = await translateTexts(items.map((i) => i.text));
+      items.forEach((item, i) => { renderTranslation(item.target, results[i]); item.link?.remove(); });
+    } catch (err) {
+      alert(err.message);
+    }
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+
   let reportsFilter = 'open';
 
   function setReportsFilter(filter) {
@@ -778,8 +851,18 @@
         ${actions}
       `;
       list.appendChild(el);
+
+      // Offer translation of the reported content and the reporter's note.
+      const s = r.snapshot || {};
+      const contentText = r.target_type === 'listing' ? [s.title, s.description].filter(Boolean).join('\n') : r.target_type === 'message' ? s.body : '';
+      const previews = el.querySelectorAll('.list-item-preview');
+      if (contentText && previews[0]) addTranslatable(el, previews[0], contentText);
+      if (r.details && previews[1]) addTranslatable(el, previews[1], r.details);
     });
   }
+
+  document.getElementById('ticket-translate-all').addEventListener('click', (e) => translateAll(document.getElementById('ticket-modal-messages'), e.currentTarget));
+  document.getElementById('conversation-translate-all').addEventListener('click', (e) => translateAll(document.getElementById('conversation-modal-messages'), e.currentTarget));
 
   document.getElementById('reports-list').addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-report]');
@@ -842,12 +925,15 @@
     const { data: messages } = await supabase.from('ticket_messages').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: true });
     const box = document.getElementById('ticket-modal-messages');
     box.innerHTML = '';
+    box._translatables = [];
+    addTranslatable(box, document.getElementById('ticket-modal-meta').parentElement, currentTicket?.subject, { withLink: false });
     (messages || []).forEach((m) => {
       const mine = m.sender_id === session.user.id;
       const div = document.createElement('div');
       div.className = 'msg-bubble ' + (mine ? 'mine' : 'theirs');
       div.innerHTML = `${escapeHtml(m.body)}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
       box.appendChild(div);
+      addTranslatable(box, div, m.body);
     });
     box.scrollTop = box.scrollHeight;
   }
@@ -1177,6 +1263,7 @@
     document.getElementById('conversation-modal-meta').textContent = conversation.listings ? 'Re: ' + conversation.listings.title : 'No listing attached';
     const box = document.getElementById('conversation-modal-messages');
     box.innerHTML = '';
+    box._translatables = [];
     const messages = (conversation.messages || []).slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     if (messages.length === 0) box.innerHTML = '<p class="hint">No messages yet.</p>';
     messages.forEach((m) => {
@@ -1184,6 +1271,7 @@
       div.className = 'msg-bubble theirs';
       div.innerHTML = `${escapeHtml(m.body)}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
       box.appendChild(div);
+      addTranslatable(box, div, m.body);
     });
     document.getElementById('conversation-modal').classList.add('active');
   }
