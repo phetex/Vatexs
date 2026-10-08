@@ -49,6 +49,7 @@ function RootNavigator() {
           contentStyle: { backgroundColor: colors.background },
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,
+          headerBackButtonDisplayMode: 'minimal',
         }}
       >
         {/* Browsing is open to guests (App Store guideline 5.1.1): sign-in is only
@@ -56,7 +57,13 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="listing/[id]"
-          options={{ headerShown: true, title: '', headerTransparent: true, headerTintColor: colors.white }}
+          options={{
+            headerShown: true,
+            title: '',
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.text,
+          }}
         />
 
         <Stack.Protected guard={!!session}>

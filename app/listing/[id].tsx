@@ -85,7 +85,7 @@ export default function ListingDetail() {
     body: { padding: spacing.lg },
     titleRow: { flexDirection: 'row' as const, alignItems: 'flex-start' as const },
     favoriteButton: { padding: spacing.xs },
-    menuButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center' as const, justifyContent: 'center' as const },
+    menuButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surface, alignItems: 'center' as const, justifyContent: 'center' as const },
     price: { fontSize: 26, fontWeight: '800' as const, color: colors.text },
     title: { fontSize: 16, color: colors.text, marginTop: 2 },
     metaRow: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, marginTop: spacing.md, gap: spacing.md },
@@ -175,7 +175,7 @@ export default function ListingDetail() {
       headerRight: showMenu
         ? () => (
             <Pressable onPress={onListingMenu} hitSlop={12} style={styles.menuButton}>
-              <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
             </Pressable>
           )
         : undefined,
