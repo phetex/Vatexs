@@ -461,7 +461,7 @@
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return showLogin();
 
-    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single();
+    const { data: profile } = await supabase.rpc('get_my_profile').maybeSingle();
     if (!profile?.is_admin) {
       document.getElementById('login-error').textContent = 'This account does not have admin access.';
       await supabase.auth.signOut();
@@ -1194,7 +1194,7 @@
   let allCustomers = [];
 
   async function loadCustomers() {
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.rpc('admin_list_profiles');
     allCustomers = data || [];
     renderCustomers(allCustomers);
   }

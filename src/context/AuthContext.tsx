@@ -28,8 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    const loaded = data as Profile | null;
+    // Private columns (phone, wallet, ...) are only readable through this function once the
+    // profiles table is locked down; fall back to a direct read so a transient error never
+    // leaves the user without a profile.
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_my_profile').maybeSingle();
+    let loaded = !rpcError ? (rpcData as Profile | null) : null;
+    if (!loaded) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      loaded = data as Profile | null;
+    }
     setProfile(loaded);
     setAnalyticsOptIn(!!loaded?.analytics_opt_in);
   };
