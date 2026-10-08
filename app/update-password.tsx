@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
 import { TextField } from '../src/components/TextField';
 import { supabase } from '../src/lib/supabase';
+import { PASSWORD_HINT, validatePassword } from '../src/lib/passwordPolicy';
 import { useThemedStyles } from '../src/context/ThemeContext';
 import { spacing } from '../src/theme/colors';
 
@@ -23,8 +24,9 @@ export default function UpdatePassword() {
 
   const onSubmit = async () => {
     setError(null);
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    const policyError = validatePassword(password);
+    if (policyError) {
+      setError(policyError);
       return;
     }
     if (password !== confirmPassword) {
@@ -52,7 +54,7 @@ export default function UpdatePassword() {
             autoCapitalize="none"
             value={password}
             onChangeText={setPassword}
-            placeholder="At least 6 characters"
+            placeholder={PASSWORD_HINT}
           />
           <TextField
             label="Confirm new password"

@@ -334,6 +334,10 @@
   let banks = [];
   let marketplaceFilter = null;
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   function fmtMoney(amount, currency) {
     const symbol = CURRENCY_SYMBOL[currency] || currency + ' ';
     return `${symbol}${Number(amount).toLocaleString()}`;
@@ -420,7 +424,7 @@
     categories.forEach((c) => {
       const el = document.createElement('div');
       el.className = 'cat-card';
-      el.innerHTML = `<div style="font-size:22px;">🏷️</div><div class="label">${c.name}</div>`;
+      el.innerHTML = `<div style="font-size:22px;">🏷️</div><div class="label">${escapeHtml(c.name)}</div>`;
       grid.appendChild(el);
     });
 
@@ -513,10 +517,10 @@
       el.className = 'list-item';
       el.innerHTML = `
         <div class="list-body">
-          <div class="list-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
-          <div class="list-meta">Buyer: ${o.buyer?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
+          <div class="list-title">${escapeHtml(o.listings?.title || 'Listing')} — ${escapeHtml(fmtMoney(o.amount, o.currency))}</div>
+          <div class="list-meta">Buyer: ${escapeHtml(o.buyer?.full_name || '—')} · ${timeAgo(o.created_at)}</div>
         </div>
-        <span class="pill ${o.status}">${o.status}</span>
+        <span class="pill ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span>
       `;
       box.appendChild(el);
     });
@@ -538,16 +542,16 @@
       const el = document.createElement('div');
       el.className = 'list-item';
       el.innerHTML = `
-        ${img ? `<img class="list-thumb" src="${img}">` : `<div class="list-thumb"></div>`}
+        ${img ? `<img class="list-thumb" src="${escapeHtml(img)}">` : `<div class="list-thumb"></div>`}
         <div class="list-body">
-          <div class="list-title">${p.title} — ${fmtMoney(p.price, p.currency)}</div>
-          <div class="list-meta">${p.categories?.name || ''} ${p.location ? '· ' + p.location : ''}</div>
+          <div class="list-title">${escapeHtml(p.title)} — ${escapeHtml(fmtMoney(p.price, p.currency))}</div>
+          <div class="list-meta">${escapeHtml(p.categories?.name || '')} ${p.location ? '· ' + escapeHtml(p.location) : ''}</div>
         </div>
-        <span class="pill ${p.status}">${p.status}</span>
+        <span class="pill ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>
         <div class="list-actions">
-          <button class="btn btn-outline btn-sm" data-edit="${p.id}">Edit</button>
-          ${p.status !== 'sold' ? `<button class="btn btn-outline btn-sm" data-sold="${p.id}">Mark sold</button>` : ''}
-          <button class="btn btn-danger btn-sm" data-delete="${p.id}">Delete</button>
+          <button class="btn btn-outline btn-sm" data-edit="${escapeHtml(p.id)}">Edit</button>
+          ${p.status !== 'sold' ? `<button class="btn btn-outline btn-sm" data-sold="${escapeHtml(p.id)}">Mark sold</button>` : ''}
+          <button class="btn btn-danger btn-sm" data-delete="${escapeHtml(p.id)}">Delete</button>
         </div>
       `;
       list.appendChild(el);
@@ -611,7 +615,7 @@
       const wrap = document.createElement('div');
       wrap.className = 'thumb-wrap';
       const src = img.existingUrl || img.previewUrl;
-      wrap.innerHTML = `<img src="${src}"><button type="button" class="thumb-remove">&times;</button>`;
+      wrap.innerHTML = `<img src="${escapeHtml(src)}"><button type="button" class="thumb-remove">&times;</button>`;
       wrap.querySelector('.thumb-remove').addEventListener('click', () => { productImages.splice(i, 1); renderThumbs(); });
       row.appendChild(wrap);
     });
@@ -714,10 +718,10 @@
       el.className = 'list-item';
       el.innerHTML = `
         <div class="list-body">
-          <div class="list-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
-          <div class="list-meta">Buyer: ${o.buyer?.full_name || '—'} · Payout: ${fmtMoney(o.payout_amount, o.currency)} · ${timeAgo(o.created_at)}</div>
+          <div class="list-title">${escapeHtml(o.listings?.title || 'Listing')} — ${escapeHtml(fmtMoney(o.amount, o.currency))}</div>
+          <div class="list-meta">Buyer: ${escapeHtml(o.buyer?.full_name || '—')} · Payout: ${escapeHtml(fmtMoney(o.payout_amount, o.currency))} · ${timeAgo(o.created_at)}</div>
         </div>
-        <span class="pill ${o.status}">${o.status}</span>
+        <span class="pill ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span>
       `;
       list.appendChild(el);
     });
@@ -748,10 +752,10 @@
       const el = document.createElement('div');
       el.className = 'list-item';
       el.innerHTML = `
-        ${img ? `<img class="list-thumb" src="${img}">` : `<div class="list-thumb"></div>`}
+        ${img ? `<img class="list-thumb" src="${escapeHtml(img)}">` : `<div class="list-thumb"></div>`}
         <div class="list-body">
-          <div class="list-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
-          <div class="list-meta">${l.categories?.name || ''} · Seller: ${l.profiles?.full_name || 'Vatexs user'} · ${timeAgo(l.created_at)}</div>
+          <div class="list-title">${escapeHtml(l.title)} — ${escapeHtml(fmtMoney(l.price, l.currency))}</div>
+          <div class="list-meta">${escapeHtml(l.categories?.name || '')} · Seller: ${escapeHtml(l.profiles?.full_name || 'Vatexs user')} · ${timeAgo(l.created_at)}</div>
         </div>
       `;
       list.appendChild(el);
@@ -771,7 +775,7 @@
     const statusEl = document.getElementById('payout-status');
     const formEl = document.getElementById('payout-form');
     if (payoutAccount) {
-      statusEl.innerHTML = `✅ ${payoutAccount.bank_name} •••• ${payoutAccount.account_number_last4} (${payoutAccount.account_name})`;
+      statusEl.textContent = `✅ ${payoutAccount.bank_name} •••• ${payoutAccount.account_number_last4} (${payoutAccount.account_name})`;
     } else {
       statusEl.textContent = 'No payout account yet — add one so buyers can release payments to you.';
     }

@@ -7,6 +7,7 @@ import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { CountryPicker } from '../../src/components/CountryPicker';
 import { useAuth } from '../../src/context/AuthContext';
+import { PASSWORD_HINT, validatePassword } from '../../src/lib/passwordPolicy';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
@@ -45,8 +46,9 @@ export default function SignUp() {
   const onSubmit = async () => {
     setError(null);
     setNotice(null);
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    const policyError = validatePassword(password);
+    if (policyError) {
+      setError(policyError);
       return;
     }
     if (password !== confirmPassword) {
@@ -92,7 +94,7 @@ export default function SignUp() {
               autoCapitalize="none"
               value={password}
               onChangeText={setPassword}
-              placeholder="At least 6 characters"
+              placeholder={PASSWORD_HINT}
             />
             <TextField
               label="Confirm password"

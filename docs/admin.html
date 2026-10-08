@@ -174,7 +174,7 @@
     <input id="signup-name" type="text" placeholder="Full name" autocomplete="name">
     <input id="signup-email" type="email" placeholder="Email" autocomplete="email">
     <div class="password-field">
-      <input id="signup-password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password">
+      <input id="signup-password" type="password" placeholder="Password (8+ characters, with a letter and a number)" autocomplete="new-password">
       <button type="button" class="password-toggle" data-target="signup-password" aria-label="Show password">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
@@ -651,8 +651,12 @@
     const password = document.getElementById('signup-password').value;
     const errEl = document.getElementById('signup-error');
     errEl.textContent = '';
-    if (!fullName || !email || password.length < 6) {
-      errEl.textContent = 'Fill in your name, email, and a password of at least 6 characters.';
+    if (!fullName || !email) {
+      errEl.textContent = 'Fill in your name, email, and a password.';
+      return;
+    }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      errEl.textContent = 'Password must be at least 8 characters, with a letter and a number.';
       return;
     }
     const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
@@ -809,11 +813,11 @@
       el.className = 'list-item';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${t.subject}</div>
-          <span class="pill ${t.status}">${t.status.replace('_', ' ')}</span>
+          <div class="list-item-title">${escapeHtml(t.subject)}</div>
+          <span class="pill ${escapeHtml(t.status)}">${escapeHtml(t.status.replace('_', ' '))}</span>
         </div>
-        <div class="list-item-meta">${CATEGORY_LABEL[t.category] || t.category} · From ${t.reporter?.full_name || 'Vatexs user'} · ${timeAgo(t.created_at)}</div>
-        <div class="list-item-preview">${t.message}</div>
+        <div class="list-item-meta">${escapeHtml(CATEGORY_LABEL[t.category] || t.category)} · From ${escapeHtml(t.reporter?.full_name || 'Vatexs user')} · ${timeAgo(t.created_at)}</div>
+        <div class="list-item-preview">${escapeHtml(t.message)}</div>
       `;
       el.addEventListener('click', () => openTicket(t));
       list.appendChild(el);
@@ -842,7 +846,7 @@
       const mine = m.sender_id === session.user.id;
       const div = document.createElement('div');
       div.className = 'msg-bubble ' + (mine ? 'mine' : 'theirs');
-      div.innerHTML = `${m.body}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
+      div.innerHTML = `${escapeHtml(m.body)}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
       box.appendChild(div);
     });
     box.scrollTop = box.scrollHeight;
@@ -910,18 +914,18 @@
       el.style.cursor = 'default';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${o.listings?.title || 'Listing'} — ${fmtMoney(o.amount, o.currency)}</div>
-          <span class="pill ${o.status}">${o.status}</span>
+          <div class="list-item-title">${escapeHtml(o.listings?.title || 'Listing')} — ${escapeHtml(fmtMoney(o.amount, o.currency))}</div>
+          <span class="pill ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span>
         </div>
-        <div class="list-item-meta">Buyer: ${o.buyer?.full_name || '—'} · Seller: ${o.seller?.full_name || '—'} · ${timeAgo(o.created_at)}</div>
+        <div class="list-item-meta">Buyer: ${escapeHtml(o.buyer?.full_name || '—')} · Seller: ${escapeHtml(o.seller?.full_name || '—')} · ${timeAgo(o.created_at)}</div>
         <div class="btn-row">
           ${
             o.status === 'released'
-              ? `<button class="btn btn-outline btn-note" data-order="${o.id}" data-type="grn">Download GRN</button>
-                 <button class="btn btn-outline btn-note" data-order="${o.id}" data-type="issue_note">Download Issue Note</button>`
+              ? `<button class="btn btn-outline btn-note" data-order="${escapeHtml(o.id)}" data-type="grn">Download GRN</button>
+                 <button class="btn btn-outline btn-note" data-order="${escapeHtml(o.id)}" data-type="issue_note">Download Issue Note</button>`
               : ''
           }
-          <button class="btn btn-outline btn-refund-policy" data-order="${o.id}">View refund policy</button>
+          <button class="btn btn-outline btn-refund-policy" data-order="${escapeHtml(o.id)}">View refund policy</button>
         </div>
       `;
       list.appendChild(el);
@@ -1022,15 +1026,15 @@
       el.style.cursor = 'default';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${a.title}</div>
-          <span class="pill ${a.status === 'scheduled' ? 'in_review' : a.status === 'completed' ? 'resolved' : 'cancelled'}">${a.status}</span>
+          <div class="list-item-title">${escapeHtml(a.title)}</div>
+          <span class="pill ${a.status === 'scheduled' ? 'in_review' : a.status === 'completed' ? 'resolved' : 'cancelled'}">${escapeHtml(a.status)}</span>
         </div>
-        <div class="list-item-meta">${fmtDateTime(a.scheduled_at)} · ${a.duration_minutes}m${a.with_user ? ' · With ' + a.with_user.full_name : ''}${a.location ? ' · ' + a.location : ''}</div>
+        <div class="list-item-meta">${escapeHtml(fmtDateTime(a.scheduled_at))} · ${escapeHtml(a.duration_minutes)}m${a.with_user ? ' · With ' + escapeHtml(a.with_user.full_name) : ''}${a.location ? ' · ' + escapeHtml(a.location) : ''}</div>
         ${a.status === 'scheduled' ? `
           <div class="btn-row">
-            <button class="btn btn-outline btn-sm" data-edit="${a.id}">Edit</button>
-            <button class="btn btn-outline btn-sm" data-complete="${a.id}">Mark completed</button>
-            <button class="btn btn-danger btn-sm" data-cancel="${a.id}">Cancel</button>
+            <button class="btn btn-outline btn-sm" data-edit="${escapeHtml(a.id)}">Edit</button>
+            <button class="btn btn-outline btn-sm" data-complete="${escapeHtml(a.id)}">Mark completed</button>
+            <button class="btn btn-danger btn-sm" data-cancel="${escapeHtml(a.id)}">Cancel</button>
           </div>` : ''}
       `;
       list.appendChild(el);
@@ -1157,11 +1161,11 @@
       el.className = 'list-item';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${c.buyer?.full_name || 'Buyer'} &amp; ${c.seller?.full_name || 'Seller'}</div>
+          <div class="list-item-title">${escapeHtml(c.buyer?.full_name || 'Buyer')} &amp; ${escapeHtml(c.seller?.full_name || 'Seller')}</div>
           <span class="list-item-meta">${timeAgo(c.last_message_at)}</span>
         </div>
-        <div class="list-item-meta">${c.listings ? 'Re: ' + c.listings.title : 'No listing attached'}</div>
-        ${lastMsg ? `<div class="list-item-preview">${lastMsg.body}</div>` : ''}
+        <div class="list-item-meta">${c.listings ? 'Re: ' + escapeHtml(c.listings.title) : 'No listing attached'}</div>
+        ${lastMsg ? `<div class="list-item-preview">${escapeHtml(lastMsg.body)}</div>` : ''}
       `;
       el.addEventListener('click', () => openConversation(c));
       list.appendChild(el);
@@ -1178,7 +1182,7 @@
     messages.forEach((m) => {
       const div = document.createElement('div');
       div.className = 'msg-bubble theirs';
-      div.innerHTML = `${m.body}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
+      div.innerHTML = `${escapeHtml(m.body)}<div class="msg-time">${timeAgo(m.created_at)}</div>`;
       box.appendChild(div);
     });
     document.getElementById('conversation-modal').classList.add('active');
@@ -1204,11 +1208,11 @@
       el.className = 'list-item';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${c.full_name || 'Vatexs user'}${c.is_admin ? ' <span class="pill in_review">Admin</span>' : ''}</div>
+          <div class="list-item-title">${escapeHtml(c.full_name || 'Vatexs user')}${c.is_admin ? ' <span class="pill in_review">Admin</span>' : ''}${c.banned_at ? ' <span class="pill closed">Banned</span>' : ''}</div>
           <span class="list-item-meta">Joined ${timeAgo(c.created_at)}</span>
         </div>
-        <div class="list-item-meta">${c.location || 'No location set'}${c.holiday_mode ? ' · On holiday mode' : ''}</div>
-        <div class="customer-detail" id="customer-detail-${c.id}"></div>
+        <div class="list-item-meta">${escapeHtml(c.location || 'No location set')}${c.holiday_mode ? ' · On holiday mode' : ''}</div>
+        <div class="customer-detail" id="customer-detail-${escapeHtml(c.id)}"></div>
       `;
       el.addEventListener('click', () => toggleCustomerDetail(c));
       list.appendChild(el);
@@ -1228,8 +1232,8 @@
       supabase.from('orders').select('id', { count: 'exact', head: true }).eq('seller_id', customer.id),
     ]);
     detail.innerHTML = `
-      ${customer.bio ? `<div>${customer.bio}</div>` : ''}
-      ${customer.phone ? `<div>Phone: ${customer.phone}</div>` : ''}
+      ${customer.bio ? `<div>${escapeHtml(customer.bio)}</div>` : ''}
+      ${customer.phone ? `<div>Phone: ${escapeHtml(customer.phone)}</div>` : ''}
       <div class="stat-row">
         <div><b>${listingCount ?? 0}</b>Listings</div>
         <div><b>${purchaseCount ?? 0}</b>Purchases</div>
@@ -1307,11 +1311,11 @@
       el.style.cursor = 'default';
       el.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
+          <div class="list-item-title">${escapeHtml(l.title)} — ${escapeHtml(fmtMoney(l.price, l.currency))}</div>
           <span class="pill in_review">Boosted</span>
         </div>
-        <div class="list-item-meta">Seller: ${l.profiles?.full_name || '—'} · Expires ${new Date(l.featured_until).toLocaleDateString()}</div>
-        <div class="btn-row"><button class="btn btn-outline btn-sm" data-unboost="${l.id}">Remove boost</button></div>
+        <div class="list-item-meta">Seller: ${escapeHtml(l.profiles?.full_name || '—')} · Expires ${new Date(l.featured_until).toLocaleDateString()}</div>
+        <div class="btn-row"><button class="btn btn-outline btn-sm" data-unboost="${escapeHtml(l.id)}">Remove boost</button></div>
       `;
       list.appendChild(el);
     });
@@ -1338,10 +1342,10 @@
       row.style.cursor = 'default';
       row.innerHTML = `
         <div class="list-item-top">
-          <div class="list-item-title">${l.title} — ${fmtMoney(l.price, l.currency)}</div>
-          ${l.featured ? '<span class="pill in_review">Already boosted</span>' : `<button class="btn btn-primary btn-sm" data-boost="${l.id}">Boost 7 days</button>`}
+          <div class="list-item-title">${escapeHtml(l.title)} — ${escapeHtml(fmtMoney(l.price, l.currency))}</div>
+          ${l.featured ? '<span class="pill in_review">Already boosted</span>' : `<button class="btn btn-primary btn-sm" data-boost="${escapeHtml(l.id)}">Boost 7 days</button>`}
         </div>
-        <div class="list-item-meta">Seller: ${l.profiles?.full_name || '—'}</div>
+        <div class="list-item-meta">Seller: ${escapeHtml(l.profiles?.full_name || '—')}</div>
       `;
       box.appendChild(row);
     });
@@ -1385,10 +1389,10 @@
         el.className = 'event-row';
         el.innerHTML = `
           <div>
-            <div class="name">${row.event_name}</div>
-            <div class="meta">${row.unique_devices} device${row.unique_devices === 1 ? '' : 's'}</div>
+            <div class="name">${escapeHtml(row.event_name)}</div>
+            <div class="meta">${escapeHtml(row.unique_devices)} device${row.unique_devices === 1 ? '' : 's'}</div>
           </div>
-          <div class="name">${row.event_count}</div>
+          <div class="name">${escapeHtml(row.event_count)}</div>
         `;
         table.appendChild(el);
       });
