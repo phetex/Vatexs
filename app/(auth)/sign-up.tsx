@@ -104,7 +104,7 @@ export default function SignUp() {
               onChangeText={setConfirmPassword}
               placeholder="Re-enter your password"
             />
-            <CountryPicker value={countryCode} onChange={setCountryCode} />
+            <CountryPicker optional value={countryCode} onChange={setCountryCode} />
             <TextField
               label="Referral code (optional)"
               autoCapitalize="characters"

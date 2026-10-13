@@ -7,11 +7,12 @@ import { COUNTRIES } from '../lib/countries';
 
 interface CountryPickerProps {
   label?: string;
+  optional?: boolean;
   value: string | null;
   onChange: (code: string) => void;
 }
 
-export function CountryPicker({ label = 'Country', value, onChange }: CountryPickerProps) {
+export function CountryPicker({ label = 'Country', optional = false, value, onChange }: CountryPickerProps) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -19,6 +20,7 @@ export function CountryPicker({ label = 'Country', value, onChange }: CountryPic
   const styles = useThemedStyles((colors) => ({
     container: { marginBottom: spacing.md },
     label: { fontSize: 13, fontWeight: '600' as const, color: colors.textMuted, marginBottom: spacing.xs },
+    hint: { fontSize: 12, color: colors.textFaint, marginTop: spacing.xs },
     field: {
       height: 50,
       borderRadius: radius.md,
@@ -74,11 +76,12 @@ export function CountryPicker({ label = 'Country', value, onChange }: CountryPic
 
   return (
     <View style={styles.container}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text style={styles.label}>{optional ? `${label} (optional)` : label}</Text> : null}
       <Pressable style={styles.field} onPress={() => setOpen(true)}>
-        <Text style={[styles.fieldText, !selected && styles.placeholder]}>{selected ? selected.name : 'Select your country'}</Text>
+        <Text style={[styles.fieldText, !selected && styles.placeholder]}>{selected ? selected.name : optional ? 'Select your country (optional)' : 'Select your country'}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textFaint} />
       </Pressable>
+      {optional ? <Text style={styles.hint}>Optional. Only used to show prices in your currency.</Text> : null}
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.modal}>

@@ -56,7 +56,7 @@ export default function EditProfile() {
           <TextField label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Manchester" />
           <TextField label="Phone (optional)" value={phone} onChangeText={setPhone} placeholder="Shown only to buyers you message" keyboardType="phone-pad" />
           <TextField label="Bio" value={bio} onChangeText={setBio} placeholder="Tell buyers a bit about you" multiline numberOfLines={3} style={styles.textArea} />
-          <CountryPicker value={countryCode} onChange={setCountryCode} />
+          <CountryPicker optional value={countryCode} onChange={setCountryCode} />
           <Button title="Save changes" onPress={onSave} loading={saving} style={styles.save} />
         </ScrollView>
       </KeyboardAvoidingView>
