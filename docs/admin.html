@@ -184,9 +184,14 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
+    <input id="signup-confirm" type="password" placeholder="Confirm password" autocomplete="new-password">
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--text-muted);margin:4px 0 14px;text-align:left;cursor:pointer;">
+      <input id="signup-terms" type="checkbox" style="width:auto;margin-top:3px;">
+      <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>. Vatexs has zero tolerance for objectionable content and abusive users.</span>
+    </label>
     <button class="btn btn-primary" style="width:100%;" id="signup-btn">Create account</button>
     <p class="hint">
-      Creating an account here does not grant admin access on its own — an existing admin needs to flag your account.
+      Creating an account here does not give you team access on its own — an admin has to add you from the Team page.
       <br><a href="#" id="show-signin-from-signup">Back to sign in</a>
     </p>
   </div>
@@ -632,6 +637,7 @@
     const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
     errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { errEl.textContent = error.message; return; }
     checkSession();
@@ -713,6 +719,7 @@
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
     const errEl = document.getElementById('signup-error');
+    errEl.style.color = '';
     errEl.textContent = '';
     if (!fullName || !email) {
       errEl.textContent = 'Fill in your name, email, and a password.';
@@ -722,7 +729,15 @@
       errEl.textContent = 'Password must be at least 8 characters, with a letter and a number.';
       return;
     }
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
+    if (password !== document.getElementById('signup-confirm').value) {
+      errEl.textContent = 'Passwords do not match.';
+      return;
+    }
+    if (!document.getElementById('signup-terms').checked) {
+      errEl.textContent = 'Please agree to the Terms of Service to create an account.';
+      return;
+    }
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, terms_accepted_at: new Date().toISOString() } } });
     if (error) { errEl.textContent = error.message; return; }
     errEl.style.color = '#1CB566';
     errEl.textContent = 'Account created. If email confirmation is required, check your inbox before signing in.';

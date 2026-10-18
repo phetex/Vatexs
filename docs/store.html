@@ -386,6 +386,7 @@
     const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
     errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { errEl.textContent = error.message; return; }
     checkSession();
