@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TextField } from '../../src/components/TextField';
 import { useAuth } from '../../src/context/AuthContext';
+import { ResendConfirmation } from '../../src/components/ResendConfirmation';
 import { useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
@@ -15,6 +16,7 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsConfirm, setNeedsConfirm] = useState(false);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     scroll: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' as const },
@@ -31,11 +33,20 @@ export default function SignIn() {
 
   const onSubmit = async () => {
     setError(null);
+    setNeedsConfirm(false);
     setLoading(true);
     const { error: signInError } = await signIn(email.trim(), password);
     setLoading(false);
-    if (signInError) setError(signInError);
-    else router.replace('/(tabs)');
+    if (signInError) {
+      if (/not confirmed/i.test(signInError)) {
+        setNeedsConfirm(true);
+        setError('Please confirm your email address first. We sent you a link when you signed up.');
+      } else {
+        setError(signInError);
+      }
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   return (
@@ -64,6 +75,7 @@ export default function SignIn() {
               placeholder="••••••••"
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
+            {needsConfirm ? <ResendConfirmation email={email} /> : null}
             <Button title="Sign in" onPress={onSubmit} loading={loading} disabled={!email || !password} />
             <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
               Forgot password?

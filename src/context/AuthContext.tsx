@@ -15,7 +15,8 @@ interface AuthContextValue {
     fullName: string,
     countryCode?: string | null,
     referralCode?: string | null
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{ error: string | null; confirmationRequired?: boolean }>;
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp: AuthContextValue['signUp'] = async (email, password, fullName, countryCode, referralCode) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -79,6 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
+    return { error: error?.message ?? null, confirmationRequired: !error && !data.session };
+  };
+
+  const resendConfirmation: AuthContextValue['resendConfirmation'] = async (email) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
     return { error: error?.message ?? null };
   };
 
@@ -91,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ session, profile, loading, signIn, signUp, signOut, refreshProfile }),
+    () => ({ session, profile, loading, signIn, signUp, resendConfirmation, signOut, refreshProfile }),
     [session, profile, loading]
   );
 

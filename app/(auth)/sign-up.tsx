@@ -8,6 +8,7 @@ import { TextField } from '../../src/components/TextField';
 import { CountryPicker } from '../../src/components/CountryPicker';
 import { useAuth } from '../../src/context/AuthContext';
 import { PASSWORD_HINT, validatePassword } from '../../src/lib/passwordPolicy';
+import { ResendConfirmation } from '../../src/components/ResendConfirmation';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
@@ -26,6 +27,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     scroll: { flexGrow: 1, padding: spacing.lg, justifyContent: 'center' as const },
@@ -60,13 +62,19 @@ export default function SignUp() {
       return;
     }
     setLoading(true);
-    const { error: signUpError } = await signUp(email.trim(), password, fullName.trim(), countryCode, referralCode.trim() || null);
+    const { error: signUpError, confirmationRequired } = await signUp(email.trim(), password, fullName.trim(), countryCode, referralCode.trim() || null);
     setLoading(false);
     if (signUpError) {
       setError(signUpError);
       return;
     }
-    setNotice('Account created. If email confirmation is required, check your inbox before signing in.');
+    if (confirmationRequired) {
+      // Stay on this screen: the user has to open the email before they can sign in.
+      setAwaitingConfirm(true);
+      setNotice('Account created. We sent a confirmation email. Open it, then come back and sign in.');
+      return;
+    }
+    setNotice('Account created.');
     setTimeout(() => router.replace('/(tabs)'), 400);
   };
 
@@ -128,6 +136,7 @@ export default function SignUp() {
             </Pressable>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+            {awaitingConfirm ? <ResendConfirmation email={email} /> : null}
             <Button
               title="Create account"
               onPress={onSubmit}
