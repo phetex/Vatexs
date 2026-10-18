@@ -2,6 +2,7 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from '@supabase/server';
 import { sendSupportNotification, sendUserNotification } from '../_shared/resend.ts';
 import { sendPushToUser } from '../_shared/push.ts';
+import { callerHasAal2 } from '../_shared/aal.ts';
 
 export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
@@ -24,11 +25,12 @@ export default {
 
     const { data: callerProfile } = await ctx.supabaseAdmin
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, is_staff')
       .eq('id', callerId)
       .single();
 
-    const isAdmin = !!callerProfile?.is_admin;
+    // Staff reply as support only from a 2FA-verified session (the admin portal).
+    const isAdmin = !!callerProfile?.is_admin || (!!callerProfile?.is_staff && callerHasAal2(req));
 
     if (!isAdmin && ticket.reporter_id !== callerId) {
       return Response.json({ error: 'You are not part of this ticket' }, { status: 403 });
@@ -63,7 +65,7 @@ export default {
         `[Vatexs] New reply on ticket: ${ticket.subject}`,
         `<p>${body}</p>`
       );
-      const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+      const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').or('is_admin.eq.true,is_staff.eq.true');
       for (const admin of admins ?? []) {
         await sendPushToUser(ctx.supabaseAdmin, admin.id, 'New ticket reply', ticket.subject, { type: 'ticket_reply', ticket_id });
       }

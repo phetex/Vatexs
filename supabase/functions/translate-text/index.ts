@@ -15,8 +15,8 @@ export default {
   fetch: withSupabase({ auth: 'user' }, async (req, ctx) => {
     const callerId = ctx.userClaims!.id;
 
-    const { data: callerProfile } = await ctx.supabaseAdmin.from('profiles').select('is_admin').eq('id', callerId).single();
-    if (!callerProfile?.is_admin) {
+    const { data: callerProfile } = await ctx.supabaseAdmin.from('profiles').select('is_admin, is_staff').eq('id', callerId).single();
+    if (!callerProfile?.is_admin && !callerProfile?.is_staff) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
     if (!callerHasAal2(req)) {

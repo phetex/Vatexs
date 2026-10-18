@@ -77,7 +77,7 @@ export default {
       return Response.json({ error: insertError.message }, { status: 500 });
     }
 
-    const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+    const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').or('is_admin.eq.true,is_staff.eq.true');
     for (const admin of admins ?? []) {
       await sendPushToUser(ctx.supabaseAdmin, admin.id, 'New content report', `${REASONS[reason]} — ${target_type} reported`, {
         type: 'new_report',

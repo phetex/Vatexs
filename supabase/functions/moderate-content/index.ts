@@ -14,12 +14,16 @@ export default {
       return Response.json({ error: 'report_id and a valid action are required.' }, { status: 400 });
     }
 
-    const { data: callerProfile } = await ctx.supabaseAdmin.from('profiles').select('is_admin').eq('id', callerId).single();
-    if (!callerProfile?.is_admin) {
+    const { data: callerProfile } = await ctx.supabaseAdmin.from('profiles').select('is_admin, is_staff').eq('id', callerId).single();
+    if (!callerProfile?.is_admin && !callerProfile?.is_staff) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
     if (!callerHasAal2(req)) {
       return Response.json({ error: 'Two-factor authentication required for this action. Sign in through the admin portal and complete the code challenge.' }, { status: 403 });
+    }
+
+    if (action === 'ban_user' && !callerProfile.is_admin) {
+      return Response.json({ error: 'Only admins can ban users.' }, { status: 403 });
     }
 
     const { data: report } = await ctx.supabaseAdmin.from('reports').select('*').eq('id', report_id).single();

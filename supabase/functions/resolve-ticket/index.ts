@@ -15,11 +15,11 @@ export default {
 
     const { data: callerProfile } = await ctx.supabaseAdmin
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, is_staff')
       .eq('id', callerId)
       .single();
 
-    if (!callerProfile?.is_admin) {
+    if (!callerProfile?.is_admin && !callerProfile?.is_staff) {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
     if (!callerHasAal2(req)) {

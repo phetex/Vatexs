@@ -58,7 +58,7 @@ export default {
        <p>${message}</p>`
     );
 
-    const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').eq('is_admin', true);
+    const { data: admins } = await ctx.supabaseAdmin.from('profiles').select('id').or('is_admin.eq.true,is_staff.eq.true');
     for (const admin of admins ?? []) {
       await sendPushToUser(ctx.supabaseAdmin, admin.id, 'New support ticket', subject, { type: 'new_ticket', ticket_id: ticket.id });
     }

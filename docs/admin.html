@@ -237,7 +237,9 @@
       <button class="admin-nav-item" data-panel="marketing">Marketing</button>
       <button class="admin-nav-item" data-panel="deals">Deals</button>
       <button class="admin-nav-item" data-panel="analytics">Analytics</button>
+      <button class="admin-nav-item" data-panel="team">Team</button>
     </nav>
+    <div id="role-label" style="font-size:12px;color:var(--text-faint);padding:0 16px 8px;"></div>
     <button class="admin-signout" id="signout-btn">Sign out</button>
   </aside>
 
@@ -326,6 +328,36 @@
       </div>
       <h2 style="font-size:16px;margin-bottom:12px;">Currently boosted</h2>
       <div id="deals-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-team">
+      <h1>Team</h1>
+      <p style="font-size:13px;color:var(--text-muted);margin:-16px 0 20px;">
+        Everyone on the team signs in to this portal and must set up two-factor authentication the first time.
+      </p>
+
+      <div class="settings-card" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
+        <h2 style="font-size:16px;margin:0 0 4px;">Add a team member</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;">They need an existing Vatexs account. Enter the email they signed up with.</p>
+        <div id="team-find-error" class="login-error"></div>
+        <div class="form-row"><label>Email</label><input id="team-find-email" type="email" placeholder="name@example.com"></div>
+        <button class="btn btn-primary" id="team-find-btn">Find account</button>
+        <div id="team-find-result" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="settings-card" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;">
+        <h2 style="font-size:16px;margin:0 0 12px;">What each role can do</h2>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+          <p style="margin:0 0 8px;"><b>Admin:</b> everything, including refunds, orders, push broadcasts, deals, analytics, banning users and managing the team.</p>
+          <p style="margin:0;"><b>Staff:</b> support and moderation only. Reply to and resolve tickets, review reports (remove content or dismiss), read conversations and see the customer list without phone numbers or balances. Staff cannot refund, ban, broadcast or change roles.</p>
+        </div>
+      </div>
+
+      <h2 style="font-size:16px;margin-bottom:12px;">Current team</h2>
+      <div id="team-list" style="margin-bottom:32px;"></div>
+
+      <h2 style="font-size:16px;margin-bottom:12px;">Recent changes</h2>
+      <div id="team-audit"></div>
     </section>
 
     <section class="admin-panel" id="panel-analytics">
@@ -435,6 +467,8 @@
   };
 
   let currentTicket = null;
+  let myRole = null; // 'admin' or 'staff'
+  let myUserId = null;
 
   function fmtMoney(amount, currency) {
     const symbols = { GBP: '£', USD: '$', EUR: '€', NGN: '₦' };
@@ -469,13 +503,16 @@
     if (!session) return showLogin();
 
     const { data: profile } = await supabase.rpc('get_my_profile').maybeSingle();
-    if (!profile?.is_admin) {
-      document.getElementById('login-error').textContent = 'This account does not have admin access.';
+    if (!profile?.is_admin && !profile?.is_staff) {
+      document.getElementById('login-error').textContent = 'This account does not have team access.';
       await supabase.auth.signOut();
       return showLogin();
     }
 
-    // Admin accounts require 2FA. AAL (Authenticator Assurance Level) tells us
+    myRole = profile.is_admin ? 'admin' : 'staff';
+    myUserId = profile.id;
+
+    // Admin and staff accounts require 2FA. AAL (Authenticator Assurance Level) tells us
     // whether a verified TOTP factor exists and, if so, whether this session
     // has actually passed the code challenge yet.
     const { data: aal, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -549,16 +586,35 @@
   function showAdmin() {
     document.getElementById('login-view').style.display = 'none';
     document.getElementById('admin-shell').classList.add('active');
+    applyRole();
     loadOverview();
     loadTickets();
     loadReports();
-    loadOrders();
-    loadAppointments();
     loadConversations();
     loadCustomers();
-    loadSocialLinks();
-    loadDeals();
-    loadAnalytics();
+    if (myRole === 'admin') {
+      loadOrders();
+      loadAppointments();
+      loadSocialLinks();
+      loadDeals();
+      loadAnalytics();
+      loadTeam();
+    }
+  }
+
+  // Staff get the support and moderation tools only; everything else is admin-only (and enforced server-side too).
+  function applyRole() {
+    const isAdmin = myRole === 'admin';
+    const adminOnlyPanels = ['orders', 'appointments', 'marketing', 'deals', 'analytics', 'team'];
+    document.querySelectorAll('.admin-nav-item').forEach((b) => {
+      if (adminOnlyPanels.includes(b.dataset.panel)) b.style.display = isAdmin ? '' : 'none';
+    });
+    const policyBtn = document.getElementById('ticket-refund-policy-btn');
+    if (policyBtn) policyBtn.style.display = isAdmin ? '' : 'none';
+    const cards = document.querySelectorAll('#stat-grid .stat-card');
+    [1, 2].forEach((i) => { if (cards[i]) cards[i].style.display = isAdmin ? '' : 'none'; });
+    const label = document.getElementById('role-label');
+    if (label) label.textContent = isAdmin ? 'Signed in as Admin' : 'Signed in as Staff';
   }
 
   document.querySelectorAll('.password-toggle').forEach((btn) => {
@@ -833,7 +889,7 @@
       const actions = isOpen
         ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
              ${r.target_type !== 'user' ? `<button class="btn btn-outline" data-report="${escapeHtml(r.id)}" data-action="remove_content">Remove content</button>` : ''}
-             <button class="btn btn-danger" data-report="${escapeHtml(r.id)}" data-action="ban_user">${r.target_type !== 'user' ? 'Remove content &amp; ban user' : 'Ban user'}</button>
+             ${myRole === 'admin' ? `<button class="btn btn-danger" data-report="${escapeHtml(r.id)}" data-action="ban_user">${r.target_type !== 'user' ? 'Remove content &amp; ban user' : 'Ban user'}</button>` : ''}
              <button class="btn btn-outline" data-report="${escapeHtml(r.id)}" data-action="dismiss">Dismiss</button>
            </div>`
         : `<div class="list-item-meta">${escapeHtml(r.status)}${r.resolved_at ? ' · ' + timeAgo(r.resolved_at) : ''}${r.resolution_note ? ' · ' + escapeHtml(r.resolution_note) : ''}</div>`;
@@ -914,7 +970,7 @@
     document.getElementById('ticket-modal-meta').textContent =
       `${CATEGORY_LABEL[ticket.category] || ticket.category}${ticket.orders ? ' · Order: ' + fmtMoney(ticket.orders.amount, ticket.orders.currency) + ' (' + ticket.orders.status + ')' : ''}`;
 
-    document.getElementById('ticket-refund-btn').style.display = ticket.orders && ticket.orders.status === 'paid' ? 'inline-block' : 'none';
+    document.getElementById('ticket-refund-btn').style.display = myRole === 'admin' && ticket.orders && ticket.orders.status === 'paid' ? 'inline-block' : 'none';
 
     await loadTicketMessages(ticket.id);
     document.getElementById('ticket-modal').classList.add('active');
@@ -1505,6 +1561,125 @@
       });
     }
   }
+
+  // ---------- Team (admins only) ----------
+  const ROLE_LABEL = { admin: 'Admin', staff: 'Staff', none: 'Regular user' };
+
+  async function callTeam(action, params = {}) {
+    const { data, error } = await supabase.functions.invoke('manage-team', { body: { action, ...params } });
+    if (error || data?.error) throw new Error(await functionErrorMessage(error, data, 'Could not complete that.'));
+    return data;
+  }
+
+  async function loadTeam() {
+    const list = document.getElementById('team-list');
+    const audit = document.getElementById('team-audit');
+    try {
+      const [{ members }, { entries }] = await Promise.all([callTeam('list'), callTeam('audit')]);
+      list.innerHTML = '';
+      (members || []).forEach((m) => {
+        const isMe = m.id === myUserId;
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.style.cursor = 'default';
+        const buttons = isMe
+          ? '<span class="list-item-meta">This is you</span>'
+          : `<div class="btn-row">
+               ${m.role === 'admin'
+                 ? `<button class="btn btn-outline" data-team-user="${escapeHtml(m.id)}" data-team-role="staff">Change to Staff</button>`
+                 : `<button class="btn btn-outline" data-team-user="${escapeHtml(m.id)}" data-team-role="admin">Make Admin</button>`}
+               <button class="btn btn-danger" data-team-user="${escapeHtml(m.id)}" data-team-role="none">Remove access</button>
+             </div>`;
+        el.innerHTML = `
+          <div class="list-item-top">
+            <div class="list-item-title">${escapeHtml(m.full_name || 'Vatexs user')}</div>
+            <span class="pill ${m.role === 'admin' ? 'in_review' : 'pending'}">${escapeHtml(ROLE_LABEL[m.role])}</span>
+          </div>
+          <div class="list-item-meta">${escapeHtml(m.email || 'No email')} · 2FA ${m.mfa_enrolled ? 'set up' : '<b>not set up yet</b>'}${m.last_sign_in_at ? ' · Last sign-in ' + timeAgo(m.last_sign_in_at) : ''}</div>
+          ${buttons}
+        `;
+        list.appendChild(el);
+      });
+      if (!members || members.length === 0) list.innerHTML = '<p class="hint">No team members yet.</p>';
+
+      audit.innerHTML = '';
+      (entries || []).forEach((e) => {
+        const el = document.createElement('div');
+        el.className = 'list-item';
+        el.style.cursor = 'default';
+        el.innerHTML = `<div class="list-item-title" style="font-size:13px;font-weight:600;">${escapeHtml(e.detail || e.action)}</div><div class="list-item-meta">${timeAgo(e.created_at)}</div>`;
+        audit.appendChild(el);
+      });
+      if (!entries || entries.length === 0) audit.innerHTML = '<p class="hint">No changes yet.</p>';
+    } catch (err) {
+      list.innerHTML = `<p class="hint">Could not load the team: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  async function changeRole(userId, role, name) {
+    const question = role === 'none' ? `Remove all team access for ${name}?` : `Make ${name} ${ROLE_LABEL[role]}?`;
+    if (!confirm(question)) return false;
+    try {
+      await callTeam('set_role', { user_id: userId, role });
+      return true;
+    } catch (err) {
+      alert(err.message);
+      return false;
+    }
+  }
+
+  document.getElementById('team-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-team-user]');
+    if (!btn) return;
+    const name = btn.closest('.list-item').querySelector('.list-item-title').textContent;
+    btn.disabled = true;
+    const changed = await changeRole(btn.dataset.teamUser, btn.dataset.teamRole, name);
+    if (changed) loadTeam(); else btn.disabled = false;
+  });
+
+  document.getElementById('team-find-btn').addEventListener('click', async () => {
+    const errEl = document.getElementById('team-find-error');
+    const result = document.getElementById('team-find-result');
+    errEl.textContent = '';
+    result.innerHTML = '';
+    const email = document.getElementById('team-find-email').value.trim();
+    if (!email) { errEl.textContent = 'Enter an email address.'; return; }
+    try {
+      const { user } = await callTeam('find', { email });
+      const el = document.createElement('div');
+      el.className = 'list-item';
+      el.style.cursor = 'default';
+      const options = [];
+      if (user.banned) {
+        options.push('<span class="list-item-meta">This account is banned and cannot be added.</span>');
+      } else {
+        if (user.role !== 'staff') options.push('<button class="btn btn-outline" data-find-role="staff">Add as Staff</button>');
+        if (user.role !== 'admin') options.push('<button class="btn btn-primary" data-find-role="admin">Add as Admin</button>');
+      }
+      el.innerHTML = `
+        <div class="list-item-top">
+          <div class="list-item-title">${escapeHtml(user.full_name || 'Vatexs user')}</div>
+          <span class="pill ${user.role === 'admin' ? 'in_review' : 'pending'}">${escapeHtml(ROLE_LABEL[user.role])}</span>
+        </div>
+        <div class="list-item-meta">${escapeHtml(user.email)}</div>
+        <div class="btn-row">${options.join('')}</div>
+      `;
+      el.querySelectorAll('[data-find-role]').forEach((b) => b.addEventListener('click', async () => {
+        b.disabled = true;
+        const changed = await changeRole(user.id, b.dataset.findRole, user.full_name || user.email);
+        if (changed) {
+          result.innerHTML = '';
+          document.getElementById('team-find-email').value = '';
+          loadTeam();
+        } else {
+          b.disabled = false;
+        }
+      }));
+      result.appendChild(el);
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  });
 
   checkSession();
 </script>
