@@ -49,12 +49,11 @@ function RootNavigator() {
           contentStyle: { backgroundColor: colors.background },
           headerStyle: { backgroundColor: colors.surface },
           headerTintColor: colors.text,
-          headerBackButtonDisplayMode: 'minimal',
         }}
       >
         {/* Browsing is open to guests (App Store guideline 5.1.1): sign-in is only
             required for account-based actions — selling, messaging, buying, profile. */}
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(tabs)" options={{ title: 'Home' }} />
         <Stack.Screen
           name="listing/[id]"
           options={{
