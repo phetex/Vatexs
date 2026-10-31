@@ -10,6 +10,8 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useCategories } from '../../src/hooks/useCategories';
 import { useListings } from '../../src/hooks/useListings';
 import { useNotifications } from '../../src/hooks/useNotifications';
+import { useUpdateNotice } from '../../src/hooks/useUpdateNotice';
+import { UpdateBanner } from '../../src/components/UpdateBanner';
 import { useTrackScreen } from '../../src/lib/analytics';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
@@ -21,6 +23,7 @@ export default function Home() {
   const { session, profile } = useAuth();
   const { categories } = useCategories();
   const { unreadCount } = useNotifications();
+  const { notice: updateNotice, dismiss: dismissUpdate } = useUpdateNotice();
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const { listings, loading, refreshing, refresh } = useListings({ categoryId });
   const styles = useThemedStyles((colors) => ({
@@ -81,6 +84,11 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View>
+            {updateNotice ? (
+              <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+                <UpdateBanner version={updateNotice.version} url={updateNotice.url} onDismiss={dismissUpdate} />
+              </View>
+            ) : null}
             <View style={styles.header}>
               <View>
                 <Text style={styles.brand}>Vatexs</Text>
