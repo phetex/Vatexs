@@ -17,9 +17,13 @@ Draft copy, ready to paste into App Store Connect and Google Play Console. Edit 
 
 **Description** (max 4000 chars)
 ```
-Vatexs is the marketplace where buying and selling actually feels safe.
+Vatexs is a peer-to-peer marketplace app where people buy and sell used and new items. Think of it like a community trading platform.
 
-List anything — fashion, tech, home goods, and more — and reach buyers near you. Or browse thousands of listings and buy with confidence, knowing your money is protected every step of the way.
+You can buy or sell fashion, tech, home goods, vehicles, beauty products, sports equipment, kids items, and more. Buyers pay securely through Paystack, and the money is held safely in escrow until the buyer confirms the item arrived as described. Then the seller gets paid.
+
+Vatexs takes a small 10% commission on each sale, and the rest goes to the seller.
+
+It works on your iPhone and on the web, so you can shop or sell from your phone or computer.
 
 WHY VATEXS
 
@@ -70,6 +74,14 @@ marketplace,buy,sell,escrow,secondhand,classifieds,fashion,electronics,nigeria,s
 **Copyright**
 `© 2026 Vatexs`
 
+**What's New — version 1.0.2** (paste into the 1.0.2 version page)
+```
+- Fixes an issue where the back button could stop responding on some iPhones
+- If your confirmation email doesn't arrive when you sign up, you can now request a new one
+- A notice now tells you when a new version of Vatexs is available
+- Other improvements and fixes
+```
+
 **What's New / Release notes template** (for future updates — customize per release)
 ```
 - Added light and dark mode — switch anytime in Settings
@@ -111,13 +123,17 @@ Note the Product Interaction row is the one place Apple's "linked vs. not linked
 `Vatexs: Buy & Sell Safely`
 
 **Short description** (max 80 chars)
-`Marketplace for fashion, tech & home goods — every payment protected by escrow`
+`Buy and sell with people near you. Every payment is held safely in escrow.`
 
 **Full description** (max 4000 chars)
 ```
-Vatexs is the marketplace where buying and selling actually feels safe.
+Vatexs is a peer-to-peer marketplace app where people buy and sell used and new items. Think of it like a community trading platform.
 
-List anything — fashion, tech, home goods, and more — and reach buyers near you. Or browse thousands of listings and buy with confidence, knowing your money is protected every step of the way.
+You can buy or sell fashion, tech, home goods, vehicles, beauty products, sports equipment, kids items, and more. Buyers pay securely through Paystack, and the money is held safely in escrow until the buyer confirms the item arrived as described. Then the seller gets paid.
+
+Vatexs takes a small 10% commission on each sale, and the rest goes to the seller.
+
+It works on iOS, Android, and the web, so you can shop or sell from your phone or computer.
 
 WHY VATEXS
 
@@ -184,5 +200,6 @@ Shopping
 - ✅ App icon — `assets/icon.png` (1024×1024)
 - ✅ Android feature graphic — `docs/play-feature-graphic.png` (1024×500)
 - ✅ Android hi-res icon — `docs/play-icon-512.png` (512×512)
+- ✅ Clean iPhone screenshots for 1.0.2 — `docs/screenshots/ios-clean/` (6.9" 1290×2796 and 6.5" 1242×2688, five each: home, listing, search, category, listing 2). Upload these on the 1.0.2 version page; they have no "(tabs)" label and no real user names.
 - ✅ Phone screenshots — `docs/screenshots/` (captured from the live app via the demo account: Home/browse, listing detail, Sell, Profile, Settings). Use these for both Android (min 2 required) and iOS (6.7"/6.5" sizes) listings — Apple requires device-specific dimensions, so these may need resizing/re-capturing at the exact iPhone resolutions before upload; Android accepts them close to as-is.
 - Optional, not required to launch: a short preview video for either store.
