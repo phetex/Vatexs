@@ -7,6 +7,7 @@ import { formatPrice } from '../lib/format';
 import { isListingFeatured } from '../hooks/useListings';
 import { useAuth } from '../context/AuthContext';
 import { useExchangeRates } from '../hooks/useExchangeRates';
+import { useGridLayout } from '../hooks/useGridLayout';
 import { currencyForCountry } from '../lib/countries';
 import type { ListingWithDetails } from '../types/database';
 
@@ -14,11 +15,12 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
   const router = useRouter();
   const { profile } = useAuth();
   const { convert } = useExchangeRates();
+  const { cardWidth } = useGridLayout();
   const image = listing.listing_images?.[0]?.url;
   const viewerCurrency = currencyForCountry(profile?.country_code);
   const converted = viewerCurrency && viewerCurrency !== listing.currency ? convert(listing.price, listing.currency, viewerCurrency) : null;
   const styles = useThemedStyles((colors) => ({
-    card: { width: '48%' as const, marginBottom: spacing.lg },
+    card: { marginBottom: spacing.lg },
     imageWrap: {
       borderRadius: radius.lg,
       overflow: 'hidden' as const,
@@ -73,7 +75,7 @@ export function ListingCard({ listing }: { listing: ListingWithDetails }) {
   }));
 
   return (
-    <Pressable style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} onPress={() => router.push(`/listing/${listing.id}`)}>
+    <Pressable style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && { opacity: 0.85 }]} onPress={() => router.push(`/listing/${listing.id}`)}>
       <View style={styles.imageWrap}>
         {image ? (
           <Image source={{ uri: image }} style={styles.image} />

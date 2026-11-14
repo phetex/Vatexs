@@ -13,12 +13,14 @@ import { useNotifications } from '../../src/hooks/useNotifications';
 import { useUpdateNotice } from '../../src/hooks/useUpdateNotice';
 import { UpdateBanner } from '../../src/components/UpdateBanner';
 import { useTrackScreen } from '../../src/lib/analytics';
+import { useGridLayout } from '../../src/hooks/useGridLayout';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
 export default function Home() {
   useTrackScreen('home');
   const { colors } = useTheme();
+  const { columns, rowStyle } = useGridLayout();
   const router = useRouter();
   const { session, profile } = useAuth();
   const { categories } = useCategories();
@@ -78,8 +80,9 @@ export default function Home() {
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={[styles.row, rowStyle]}
         contentContainerStyle={styles.listContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
         ListHeaderComponent={

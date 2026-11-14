@@ -9,6 +9,7 @@ import { SignInPrompt } from '../../src/components/SignInPrompt';
 import { useAuth } from '../../src/context/AuthContext';
 import { useListings } from '../../src/hooks/useListings';
 import { useTrackScreen } from '../../src/lib/analytics';
+import { useGridLayout } from '../../src/hooks/useGridLayout';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { spacing } from '../../src/theme/colors';
 
@@ -23,6 +24,7 @@ export default function Profile() {
 function ProfileScreen() {
   useTrackScreen('profile');
   const { colors } = useTheme();
+  const { columns, rowStyle } = useGridLayout();
   const { session, profile, signOut } = useAuth();
   const router = useRouter();
   const { listings, loading } = useListings({ sellerId: session?.user.id });
@@ -47,8 +49,9 @@ function ProfileScreen() {
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={[styles.row, rowStyle]}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>

@@ -6,12 +6,14 @@ import { ListingCard } from '../../src/components/ListingCard';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useListings } from '../../src/hooks/useListings';
 import { trackEvent, useTrackScreen } from '../../src/lib/analytics';
+import { useGridLayout } from '../../src/hooks/useGridLayout';
 import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 
 export default function Search() {
   useTrackScreen('search');
   const { colors } = useTheme();
+  const { columns, rowStyle } = useGridLayout();
   const [query, setQuery] = useState('');
   const { listings, loading } = useListings({ search: query.trim() || undefined });
 
@@ -60,8 +62,9 @@ export default function Search() {
       <FlatList
         data={listings}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={[styles.row, rowStyle]}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => <ListingCard listing={item} />}
         ListEmptyComponent={
