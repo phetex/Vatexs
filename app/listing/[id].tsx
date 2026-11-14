@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +24,6 @@ import { useTheme, useThemedStyles } from '../../src/context/ThemeContext';
 import { radius, spacing } from '../../src/theme/colors';
 import type { ListingWithDetails } from '../../src/types/database';
 
-const { width } = Dimensions.get('window');
-
 const CONDITION_LABEL: Record<string, string> = {
   new: 'New',
   like_new: 'Like new',
@@ -40,6 +38,9 @@ export default function ListingDetail() {
   const { session, profile } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
+  // Sized from the live window so the photo follows screen rotation (portrait: square; landscape: capped height).
+  const { width, height: windowHeight } = useWindowDimensions();
+  const heroSize = { width, height: Math.min(width, windowHeight * 0.7) };
   const [reportOpen, setReportOpen] = useState(false);
   const [listing, setListing] = useState<ListingWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,7 @@ export default function ListingDetail() {
   const styles = useThemedStyles((colors) => ({
     container: { flex: 1, backgroundColor: colors.background },
     loading: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const },
-    heroImage: { width, height: width, backgroundColor: colors.surface },
+    heroImage: { backgroundColor: colors.surface },
     heroPlaceholder: { alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: colors.surface },
     heroWrap: { position: 'relative' as const },
     imageCounter: {
@@ -286,7 +287,7 @@ export default function ListingDetail() {
               onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
             >
               {images.map((img) => (
-                <Image key={img.id} source={{ uri: img.url }} style={styles.heroImage} resizeMode="contain" />
+                <Image key={img.id} source={{ uri: img.url }} style={[styles.heroImage, heroSize]} resizeMode="contain" />
               ))}
             </ScrollView>
             {images.length > 1 ? (
@@ -305,7 +306,7 @@ export default function ListingDetail() {
             ) : null}
           </View>
         ) : (
-          <View style={[styles.heroImage, styles.heroPlaceholder]}>
+          <View style={[styles.heroImage, heroSize, styles.heroPlaceholder]}>
             <Ionicons name="image-outline" size={40} color={colors.textFaint} />
           </View>
         )}
