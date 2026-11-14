@@ -4,7 +4,7 @@
     "slug": "vatexs",
     "version": "1.0.2",
     "scheme": "vatexs",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -12,7 +12,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vatexs.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown"
+        ]
       }
     },
     "android": {
@@ -56,6 +60,15 @@
         {
           "icon": "./assets/android-icon-foreground.png",
           "color": "#5B4EFF"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],
